@@ -12,7 +12,7 @@ export class BundleInfo {
     crc: number;
     dependencies: string[];
 
-    constructor(modpath: string, bundle: IBundleManifestEntry, bundleHash: number) {
+    constructor(modpath: string, bundle: BundleManifestEntry, bundleHash: number) {
         this.modpath = modpath;
         this.filename = bundle.key;
         this.crc = bundleHash;
@@ -50,7 +50,7 @@ export class BundleLoader {
     }
 
     public addBundles(modpath: string): void {
-        const bundleManifestArr = this.jsonUtil.deserialize<IBundleManifest>(
+        const bundleManifestArr = this.jsonUtil.deserialize<BundleManifest>(
             this.vfs.readFile(`${modpath}bundles.json`),
         ).manifest;
 
@@ -73,11 +73,11 @@ export class BundleLoader {
     }
 }
 
-export interface IBundleManifest {
-    manifest: IBundleManifestEntry[];
+export interface BundleManifest {
+    manifest: BundleManifestEntry[];
 }
 
-export interface IBundleManifestEntry {
+export interface BundleManifestEntry {
     key: string;
     dependencyKeys: string[];
 }

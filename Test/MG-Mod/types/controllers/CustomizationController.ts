@@ -1,10 +1,7 @@
 import { ProfileHelper } from "@spt/helpers/ProfileHelper";
 import { IPmcData } from "@spt/models/eft/common/IPmcData";
 import { ISuit } from "@spt/models/eft/common/tables/ITrader";
-import {
-    IBuyClothingRequestData,
-    IPaymentItemForClothing,
-} from "@spt/models/eft/customization/IBuyClothingRequestData";
+import { ClothingItem, IBuyClothingRequestData } from "@spt/models/eft/customization/IBuyClothingRequestData";
 import { IWearClothingRequestData } from "@spt/models/eft/customization/IWearClothingRequestData";
 import { IItemEventRouterResponse } from "@spt/models/eft/itemEvent/IItemEventRouterResponse";
 import { ILogger } from "@spt/models/spt/utils/ILogger";
@@ -51,7 +48,7 @@ export class CustomizationController {
         if (matchingSuits === undefined)
             throw new Error(this.localisationService.getText("customisation-unable_to_get_trader_suits", traderID));
 
-        return matchedSuits;
+        return matchedSuits!;
     }
 
     /**
@@ -151,17 +148,17 @@ export class CustomizationController {
      * Update output object and player profile with purchase details
      * @param sessionId Session id
      * @param pmcData Player profile
-     * @param itemsToPayForClothingWith Clothing purchased
+     * @param clothingItems Clothing purchased
      * @param output Client response
      */
     protected payForClothingItems(
         sessionId: string,
         pmcData: IPmcData,
-        itemsToPayForClothingWith: IPaymentItemForClothing[],
+        clothingItems: ClothingItem[],
         output: IItemEventRouterResponse,
     ): void {
-        for (const inventoryItemToProcess of itemsToPayForClothingWith) {
-            this.payForClothingItem(sessionId, pmcData, inventoryItemToProcess, output);
+        for (const sellItem of clothingItems) {
+            this.payForClothingItem(sessionId, pmcData, sellItem, output);
         }
     }
 
@@ -169,59 +166,47 @@ export class CustomizationController {
      * Update output object and player profile with purchase details for single piece of clothing
      * @param sessionId Session id
      * @param pmcData Player profile
-     * @param paymentItemDetails Payment details
+     * @param clothingItem Clothing item purchased
      * @param output Client response
      */
     protected payForClothingItem(
         sessionId: string,
         pmcData: IPmcData,
-        paymentItemDetails: IPaymentItemForClothing,
+        clothingItem: ClothingItem,
         output: IItemEventRouterResponse,
     ): void {
-        const inventoryItem = pmcData.Inventory.items.find((x) => x._id === paymentItemDetails.id);
-        if (!inventoryItem) {
+        const relatedItem = pmcData.Inventory.items.find((x) => x._id === clothingItem.id);
+        if (!relatedItem) {
             this.logger.error(
                 this.localisationService.getText(
                     "customisation-unable_to_find_clothing_item_in_inventory",
-                    paymentItemDetails.id,
+                    clothingItem.id,
                 ),
             );
 
             return;
         }
 
-        if (paymentItemDetails.del) {
-            output.profileChanges[sessionId].items.del.push(inventoryItem);
-            pmcData.Inventory.items.splice(pmcData.Inventory.items.indexOf(inventoryItem), 1);
+        if (clothingItem.del === true) {
+            output.profileChanges[sessionId].items.del.push(relatedItem);
+            pmcData.Inventory.items.splice(pmcData.Inventory.items.indexOf(relatedItem), 1);
         }
 
-        // No upd, add a default
-        inventoryItem.upd ||= {
-            StackObjectsCount: 1,
-        };
-
-        // Nullguard
-        if (typeof inventoryItem.upd.StackObjectsCount === "undefined") {
-            inventoryItem.upd.StackObjectsCount = 1;
+        if (!relatedItem.upd || !relatedItem.upd.StackObjectsCount) {
+            throw new Error(
+                this.localisationService.getText("customisation-suit_lacks_upd_or_stack_property", relatedItem._tpl),
+            );
         }
 
-        // Needed count to buy is same as current stack
-        if (inventoryItem.upd.StackObjectsCount === paymentItemDetails.count) {
-            output.profileChanges[sessionId].items.del.push(inventoryItem);
-            pmcData.Inventory.items.splice(pmcData.Inventory.items.indexOf(inventoryItem), 1);
-
-            return;
-        }
-
-        if (inventoryItem.upd.StackObjectsCount > paymentItemDetails.count) {
-            inventoryItem.upd.StackObjectsCount -= paymentItemDetails.count;
+        if (relatedItem.upd.StackObjectsCount > clothingItem.count) {
+            relatedItem.upd.StackObjectsCount -= clothingItem.count;
             output.profileChanges[sessionId].items.change.push({
-                _id: inventoryItem._id,
-                _tpl: inventoryItem._tpl,
-                parentId: inventoryItem.parentId,
-                slotId: inventoryItem.slotId,
-                location: inventoryItem.location,
-                upd: { StackObjectsCount: inventoryItem.upd.StackObjectsCount },
+                _id: relatedItem._id,
+                _tpl: relatedItem._tpl,
+                parentId: relatedItem.parentId,
+                slotId: relatedItem.slotId,
+                location: relatedItem.location,
+                upd: { StackObjectsCount: relatedItem.upd.StackObjectsCount },
             });
         }
     }

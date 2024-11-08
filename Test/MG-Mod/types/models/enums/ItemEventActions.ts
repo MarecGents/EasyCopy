@@ -26,5 +26,4 @@ export enum ItemEventActions {
     REDEEM_PROFILE_REWARD = "RedeemProfileReward",
     SET_FAVORITE_ITEMS = "SetFavoriteItems",
     QUEST_FAIL = "QuestFail",
-    PIN_LOCK = "PinLock",
 }

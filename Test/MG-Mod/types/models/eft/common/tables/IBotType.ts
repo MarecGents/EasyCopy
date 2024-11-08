@@ -1,20 +1,20 @@
 import { MinMax } from "@spt/models/common/MinMax";
-import { ISkills } from "@spt/models/eft/common/tables/IBotBase";
+import { Skills } from "@spt/models/eft/common/tables/IBotBase";
 
 export interface IBotType {
-    appearance: IAppearance;
-    chances: IChances;
-    difficulty: IDifficulties;
-    experience: IExperience;
+    appearance: Appearance;
+    chances: Chances;
+    difficulty: Difficulties;
+    experience: Experience;
     firstName: string[];
-    generation: IGeneration;
-    health: IHealth;
-    inventory: IInventory;
+    generation: Generation;
+    health: Health;
+    inventory: Inventory;
     lastName: string[];
-    skills: ISkills;
+    skills: Skills;
 }
 
-export interface IAppearance {
+export interface Appearance {
     body: Record<string, number>;
     feet: Record<string, number>;
     hands: Record<string, number>;
@@ -22,10 +22,10 @@ export interface IAppearance {
     voice: Record<string, number>;
 }
 
-export interface IChances {
+export interface Chances {
     equipment: EquipmentChances;
-    weaponMods: IModsChances;
-    equipmentMods: IModsChances;
+    weaponMods: ModsChances;
+    equipmentMods: ModsChances;
 }
 
 export interface EquipmentChances {
@@ -45,7 +45,7 @@ export interface EquipmentChances {
     TacticalVest: number;
 }
 
-export interface IModsChances {
+export interface ModsChances {
     mod_charge: number;
     mod_equipment: number;
     mod_equipment_000: number;
@@ -80,14 +80,14 @@ export interface IModsChances {
     mod_handguard: number;
 }
 
-export interface IDifficulties {
-    easy: IDifficultyCategories;
-    normal: IDifficultyCategories;
-    hard: IDifficultyCategories;
-    impossible: IDifficultyCategories;
+export interface Difficulties {
+    easy: Difficulty;
+    normal: Difficulty;
+    hard: Difficulty;
+    impossible: Difficulty;
 }
 
-export interface IDifficultyCategories {
+export interface Difficulty {
     Aiming: Record<string, string | number | boolean>;
     Boss: Record<string, string | number | boolean>;
     Change: Record<string, string | number | boolean>;
@@ -104,48 +104,47 @@ export interface IDifficultyCategories {
     Shoot: Record<string, string | number | boolean>;
 }
 
-export interface IExperience {
+export interface Experience {
     aggressorBonus: number;
     level: MinMax;
     reward: MinMax;
     standingForKill: number;
-    useSimpleAnimator: boolean;
 }
 
-export interface IGeneration {
-    items: IGenerationWeightingItems;
+export interface Generation {
+    items: GenerationWeightingItems;
 }
 
-export interface IGenerationWeightingItems {
-    grenades: IGenerationData;
-    healing: IGenerationData;
-    drugs: IGenerationData;
-    food: IGenerationData;
-    drink: IGenerationData;
-    currency: IGenerationData;
-    stims: IGenerationData;
-    backpackLoot: IGenerationData;
-    pocketLoot: IGenerationData;
-    vestLoot: IGenerationData;
-    magazines: IGenerationData;
-    specialItems: IGenerationData;
+export interface GenerationWeightingItems {
+    grenades: GenerationData;
+    healing: GenerationData;
+    drugs: GenerationData;
+    food: GenerationData;
+    drink: GenerationData;
+    currency: GenerationData;
+    stims: GenerationData;
+    backpackLoot: GenerationData;
+    pocketLoot: GenerationData;
+    vestLoot: GenerationData;
+    magazines: GenerationData;
+    specialItems: GenerationData;
 }
 
-export interface IGenerationData {
+export interface GenerationData {
     /** key: number of items, value: weighting */
     weights: Record<string, number>;
     /** Array of item tpls */
     whitelist: Record<string, number>;
 }
 
-export interface IHealth {
-    BodyParts: IBodyPart[];
+export interface Health {
+    BodyParts: BodyPart[];
     Energy: MinMax;
     Hydration: MinMax;
     Temperature: MinMax;
 }
 
-export interface IBodyPart {
+export interface BodyPart {
     Chest: MinMax;
     Head: MinMax;
     LeftArm: MinMax;
@@ -155,14 +154,14 @@ export interface IBodyPart {
     Stomach: MinMax;
 }
 
-export interface IInventory {
-    equipment: IEquipment;
-    Ammo: IAmmo;
-    items: IItemPools;
-    mods: IMods;
+export interface Inventory {
+    equipment: Equipment;
+    Ammo: Record<string, Record<string, number>>;
+    items: Items;
+    mods: Mods;
 }
 
-export interface IEquipment {
+export interface Equipment {
     ArmBand: Record<string, number>;
     ArmorVest: Record<string, number>;
     Backpack: Record<string, number>;
@@ -179,7 +178,7 @@ export interface IEquipment {
     TacticalVest: Record<string, number>;
 }
 
-export interface IItemPools {
+export interface Items {
     Backpack: Record<string, number>;
     Pockets: Record<string, number>;
     SecuredContainer: Record<string, number>;
@@ -187,5 +186,4 @@ export interface IItemPools {
     TacticalVest: Record<string, number>;
 }
 
-export type IAmmo = Record<string, Record<string, number>>;
-export type IMods = Record<string, Record<string, string[]>>;
+export type Mods = Record<string, Record<string, string[]>>;

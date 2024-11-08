@@ -52,16 +52,16 @@ export interface IOptions {
 }
 
 export interface ICompletionFilter {
-    itemsBlacklist: IItemsBlacklist[];
-    itemsWhitelist: IItemsWhitelist[];
+    itemsBlacklist: ItemsBlacklist[];
+    itemsWhitelist: ItemsWhitelist[];
 }
 
-export interface IItemsBlacklist {
+export interface ItemsBlacklist {
     minPlayerLevel: number;
     itemIds: string[];
 }
 
-export interface IItemsWhitelist {
+export interface ItemsWhitelist {
     minPlayerLevel: number;
     itemIds: string[];
 }

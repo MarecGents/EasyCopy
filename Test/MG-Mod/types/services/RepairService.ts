@@ -5,18 +5,18 @@ import { TraderHelper } from "@spt/helpers/TraderHelper";
 import { WeightedRandomHelper } from "@spt/helpers/WeightedRandomHelper";
 import { IArmorType } from "@spt/models/eft/common/IGlobals";
 import { IPmcData } from "@spt/models/eft/common/IPmcData";
-import { IItem } from "@spt/models/eft/common/tables/IItem";
+import { Item } from "@spt/models/eft/common/tables/IItem";
 import { ITemplateItem } from "@spt/models/eft/common/tables/ITemplateItem";
 import { IItemEventRouterResponse } from "@spt/models/eft/itemEvent/IItemEventRouterResponse";
-import { IRepairKitsInfo } from "@spt/models/eft/repair/IRepairActionDataRequest";
-import { IRepairItem } from "@spt/models/eft/repair/ITraderRepairActionDataRequest";
+import { RepairKitsInfo } from "@spt/models/eft/repair/IRepairActionDataRequest";
+import { RepairItem } from "@spt/models/eft/repair/ITraderRepairActionDataRequest";
 import { IProcessBuyTradeRequestData } from "@spt/models/eft/trade/IProcessBuyTradeRequestData";
 import { BaseClasses } from "@spt/models/enums/BaseClasses";
 import { BonusType } from "@spt/models/enums/BonusType";
 import { ConfigTypes } from "@spt/models/enums/ConfigTypes";
 import { Money } from "@spt/models/enums/Money";
 import { SkillTypes } from "@spt/models/enums/SkillTypes";
-import { IBonusSettings, IRepairConfig } from "@spt/models/spt/config/IRepairConfig";
+import { BonusSettings, IRepairConfig } from "@spt/models/spt/config/IRepairConfig";
 import { ILogger } from "@spt/models/spt/utils/ILogger";
 import { ConfigServer } from "@spt/servers/ConfigServer";
 import { DatabaseService } from "@spt/services/DatabaseService";
@@ -55,7 +55,7 @@ export class RepairService {
     public repairItemByTrader(
         sessionID: string,
         pmcData: IPmcData,
-        repairItemDetails: IRepairItem,
+        repairItemDetails: RepairItem,
         traderId: string,
     ): RepairDetails {
         const itemToRepair = pmcData.Inventory.items.find((item) => item._id === repairItemDetails._id);
@@ -288,7 +288,7 @@ export class RepairService {
     public repairItemByKit(
         sessionId: string,
         pmcData: IPmcData,
-        repairKits: IRepairKitsInfo[],
+        repairKits: RepairKitsInfo[],
         itemToRepairId: string,
         output: IItemEventRouterResponse,
     ): RepairDetails {
@@ -331,7 +331,7 @@ export class RepairService {
             this.addMaxResourceToKitIfMissing(repairKitDetails, repairKitInInventory);
 
             // reduce usages on repairkit used
-            repairKitInInventory.upd.RepairKit.Resource -= repairKitReductionAmount;
+            repairKitInInventory.upd!.RepairKit!.Resource -= repairKitReductionAmount;
 
             output.profileChanges[sessionId].items.change.push(repairKitInInventory);
         }
@@ -424,8 +424,8 @@ export class RepairService {
      * @param repairKitDetails Repair kit details from db
      * @param repairKitInInventory Repair kit to update
      */
-    protected addMaxResourceToKitIfMissing(repairKitDetails: ITemplateItem, repairKitInInventory: IItem): void {
-        const maxRepairAmount = repairKitDetails._props.MaxRepairResource;
+    protected addMaxResourceToKitIfMissing(repairKitDetails: ITemplateItem, repairKitInInventory: Item): void {
+        const maxRepairAmount = repairKitDetails._props.MaxRepairResource!;
         if (!repairKitInInventory.upd) {
             this.logger.debug(`Repair kit: ${repairKitInInventory._id} in inventory lacks upd object, adding`);
             repairKitInInventory.upd = { RepairKit: { Resource: maxRepairAmount } };
@@ -470,7 +470,7 @@ export class RepairService {
      * @param itemConfig weapon/armor config
      * @param repairDetails Details for item to repair
      */
-    public addBuff(itemConfig: IBonusSettings, item: IItem): void {
+    public addBuff(itemConfig: BonusSettings, item: Item): void {
         const bonusRarity = this.weightedRandomHelper.getWeightedValue<string>(itemConfig.rarityWeight);
         const bonusType = this.weightedRandomHelper.getWeightedValue<string>(itemConfig.bonusTypeWeight);
 
@@ -480,12 +480,13 @@ export class RepairService {
         const bonusThresholdPercents = itemConfig[bonusRarity][bonusType].activeDurabilityPercentMinMax;
         const bonusThresholdPercent = this.randomUtil.getInt(bonusThresholdPercents.min, bonusThresholdPercents.max);
 
-        item.upd.Buff = {
-            Rarity: bonusRarity,
-            BuffType: bonusType,
-            Value: bonusValue,
-            ThresholdDurability: Number(
-                this.randomUtil.getPercentOfValue(bonusThresholdPercent, item.upd.Repairable.Durability, 2).toFixed(2),
+        item.upd!.Buff = {
+            rarity: bonusRarity,
+            buffType: bonusType,
+            value: bonusValue,
+            thresholdDurability: this.randomUtil.getPercentOfValue(
+                bonusThresholdPercent,
+                item.upd!.Repairable!.Durability,
             ),
         };
     }
@@ -544,7 +545,7 @@ export class RepairService {
                 this.localisationService.getText("repair-item_has_no_repair_points", repairDetails.repairedItem._tpl),
             );
         }
-        const durabilityToRestorePercent = repairDetails.repairPoints / template._props.MaxDurability;
+        const durabilityToRestorePercent = repairDetails.repairPoints / template._props.MaxDurability!;
         const durabilityMultiplier = this.getDurabilityMultiplier(
             receivedDurabilityMaxPercent,
             durabilityToRestorePercent,
@@ -611,7 +612,7 @@ export class RepairService {
 export class RepairDetails {
     repairCost?: number;
     repairPoints?: number;
-    repairedItem: IItem;
+    repairedItem: Item;
     repairedItemIsArmor: boolean;
     repairAmount: number;
     repairedByKit: boolean;

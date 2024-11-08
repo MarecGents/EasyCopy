@@ -9,10 +9,11 @@ from src import getFile
 import pathlib
 
 
-class CutTools():
+class CutTools:
 	
 	def __init__(self, exePath):
 		self.exePath = exePath
+		self.check_need_file()
 		self.ch = getFile.get_file(self.exePath, "res\\locales\\ch.json")
 		self.root = ttks.Window(
 			title=self.ch["cuttools"],
@@ -129,11 +130,18 @@ class CutTools():
 		pass
 	
 	def start(self):
-		nowPath = os.path.dirname(os.path.abspath(__file__))
-		if self.search_aimmingpath_var.get() is nowPath or self.search_sourcepath_var.get() is nowPath:
+		sourcePath = self.search_sourcepath_var.get()
+		aimmingPath = self.search_aimmingpath_var.get()
+		if not sourcePath or not aimmingPath:
+			messagebox.showinfo(title=self.ch["operate"], message=self.ch["cutFailed2"], parent=self.root)
+			return
+		elif getFile.compare_paths(aimmingPath, self.exePath) or getFile.compare_paths(sourcePath, self.exePath):
 			messagebox.showinfo(title=self.ch["operate"], message=self.ch["cutFailed1"], parent=self.root)
 			return
-		makeCut.cut(self.exePath)
+		elif sourcePath == aimmingPath:
+			messagebox.showinfo(title=self.ch["operate"], message=self.ch["cutFailed3"], parent=self.root)
+			return
+		makeCut.copy(self.exePath)
 		messagebox.showinfo(title=self.ch["operate"], message=self.ch["cutSuccess"], parent=self.root)
 		pass
 	
@@ -144,10 +152,16 @@ class CutTools():
 		pass
 	
 	def defaultPath(self):
-		self.search_sourcepath_var.set(os.path.dirname(os.path.abspath(__file__)))
-		self.search_aimmingpath_var.set(os.path.dirname(os.path.abspath(__file__)))
+		self.search_sourcepath_var.set(self.exePath)
+		self.search_aimmingpath_var.set(self.exePath)
+		self.rewrite("SourcePath", self.search_sourcepath_var.get())
+		self.rewrite("AimPath", self.search_aimmingpath_var.get())
 		pass
 	
+	def check_need_file(self):
+		getFile.checkup_([self.exePath + "backup\\"])
+		getFile.checkup_([self.exePath + "Logs\\"])
+		pass
 	pass
 
 # CutTools().root.mainloop()

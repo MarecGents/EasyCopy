@@ -2,7 +2,7 @@ import { SavedCommand } from "@spt/helpers/Dialogue/Commando/SptCommands/GiveCom
 import { ISptCommand } from "@spt/helpers/Dialogue/Commando/SptCommands/ISptCommand";
 import { ItemHelper } from "@spt/helpers/ItemHelper";
 import { PresetHelper } from "@spt/helpers/PresetHelper";
-import { IItem } from "@spt/models/eft/common/tables/IItem";
+import { Item } from "@spt/models/eft/common/tables/IItem";
 import { ITemplateItem } from "@spt/models/eft/common/tables/ITemplateItem";
 import { ISendMessageRequest } from "@spt/models/eft/dialog/ISendMessageRequest";
 import { IUserDialogInfo } from "@spt/models/eft/profile/ISptProfile";
@@ -192,7 +192,7 @@ export class GiveSptCommand implements ISptCommand {
             return request.dialogId;
         }
 
-        const itemsToSend: IItem[] = [];
+        const itemsToSend: Item[] = [];
         const preset = this.presetHelper.getDefaultPreset(checkedItem[1]._id);
         if (preset && !GiveSptCommand.excludedPresetItems.has(checkedItem[1]._id)) {
             for (let i = 0; i < quantity; i++) {
@@ -202,7 +202,7 @@ export class GiveSptCommand implements ISptCommand {
             }
         } else if (this.itemHelper.isOfBaseclass(checkedItem[1]._id, BaseClasses.AMMO_BOX)) {
             for (let i = 0; i < quantity; i++) {
-                const ammoBoxArray: IItem[] = [];
+                const ammoBoxArray: Item[] = [];
                 ammoBoxArray.push({ _id: this.hashUtil.generate(), _tpl: checkedItem[1]._id });
                 // DO NOT generate the ammo box cartridges, the mail service does it for us! :)
                 // this.itemHelper.addCartridgesToAmmoBox(ammoBoxArray, checkedItem[1]);
@@ -218,7 +218,7 @@ export class GiveSptCommand implements ISptCommand {
                     });
                 }
             } else {
-                const item: IItem = {
+                const item: Item = {
                     _id: this.hashUtil.generate(),
                     _tpl: checkedItem[1]._id,
                     upd: this.itemHelper.generateUpdForItem(checkedItem[1]),

@@ -23,8 +23,8 @@
  * - Finalized enum names are created as a combination of the parent name, prefix, item name, and suffix
  */
 
-import * as fs from "node:fs";
-import * as path from "node:path";
+import * as fs from "fs";
+import * as path from "path";
 import { OnLoad } from "@spt/di/OnLoad";
 import { ItemHelper } from "@spt/helpers/ItemHelper";
 import { ITemplateItem } from "@spt/models/eft/common/tables/ITemplateItem";
@@ -62,7 +62,7 @@ export class ItemTplGenerator {
         const currentDir = path.dirname(__filename);
         const projectDir = path.resolve(currentDir, "..", "..", "..");
         this.enumDir = path.join(projectDir, "src", "models", "enums");
-        this.items = this.databaseServer.getTables().templates.items;
+        this.items = this.databaseServer.getTables().templates!.items;
         this.itemOverrides = itemTplOverrides.default;
 
         // Generate an object containing all item name to ID associations
@@ -98,9 +98,9 @@ export class ItemTplGenerator {
             const itemSuffix = this.getItemSuffix(item);
 
             // Handle the case where the item starts with the parent category name. Avoids things like 'POCKETS_POCKETS'
-            if (itemParentName === itemName.substring(1, itemParentName.length + 1) && itemPrefix === "") {
+            if (itemParentName == itemName.substring(1, itemParentName.length + 1) && itemPrefix == "") {
                 itemName = itemName.substring(itemParentName.length + 1);
-                if (itemName.length > 0 && itemName.at(0) !== "_") {
+                if (itemName.length > 0 && itemName.at(0) != "_") {
                     itemName = `_${itemName}`;
                 }
             }
@@ -179,7 +179,7 @@ export class ItemTplGenerator {
                 continue;
             }
 
-            const caliber = this.cleanCaliber(item._props.ammoCaliber.toUpperCase());
+            const caliber = this.cleanCaliber(item._props.ammoCaliber!.toUpperCase());
             let weaponShortName = this.localeService.getLocaleDb()[`${itemId} ShortName`]?.toUpperCase();
 
             // Special case for the weird duplicated grenade launcher
@@ -236,37 +236,29 @@ export class ItemTplGenerator {
     private getParentName(item: ITemplateItem): string {
         if (item._props.QuestItem) {
             return "QUEST";
-        }
-        if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.BARTER_ITEM)) {
+        } else if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.BARTER_ITEM)) {
             return "BARTER";
-        }
-        if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.THROW_WEAPON)) {
+        } else if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.THROW_WEAPON)) {
             return "GRENADE";
-        }
-        if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.STIMULATOR)) {
+        } else if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.STIMULATOR)) {
             return "STIM";
-        }
-        if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.MAGAZINE)) {
+        } else if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.MAGAZINE)) {
             return "MAGAZINE";
-        }
-        if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.KEY_MECHANICAL)) {
+        } else if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.KEY_MECHANICAL)) {
             return "KEY";
-        }
-        if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.MOB_CONTAINER)) {
+        } else if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.MOB_CONTAINER)) {
             return "SECURE";
-        }
-        if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.SIMPLE_CONTAINER)) {
+        } else if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.SIMPLE_CONTAINER)) {
             return "CONTAINER";
-        }
-        if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.PORTABLE_RANGE_FINDER)) {
+        } else if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.PORTABLE_RANGE_FINDER)) {
             return "RANGEFINDER";
         }
         // Why are flares grenade launcher...?
-        if (item._name.startsWith("weapon_rsp30")) {
+        else if (item._name.startsWith("weapon_rsp30")) {
             return "FLARE";
         }
         // This is a special case for the signal pistol, I'm not adding it as a Grenade Launcher
-        if (item._id === "620109578d82e67e7911abf2") {
+        else if (item._id == "620109578d82e67e7911abf2") {
             return "SIGNALPISTOL";
         }
 
@@ -310,7 +302,7 @@ export class ItemTplGenerator {
         }
 
         // Make sure there's an underscore separator
-        if (prefix.length > 0 && prefix.at(0) !== "_") {
+        if (prefix.length > 0 && prefix.at(0) != "_") {
             prefix = `_${prefix}`;
         }
 
@@ -322,11 +314,11 @@ export class ItemTplGenerator {
 
         // Add mag size for magazines
         if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.MAGAZINE)) {
-            suffix = `${item._props.Cartridges[0]?._max_count?.toString()}RND`;
+            suffix = item._props.Cartridges![0]?._max_count?.toString() + "RND";
         }
         // Add pack size for ammo boxes
         else if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.AMMO_BOX)) {
-            suffix = `${item._props.StackSlots[0]?._max_count.toString()}RND`;
+            suffix = item._props.StackSlots![0]?._max_count.toString() + "RND";
         }
 
         // Add "DAMAGED" for damaged items
@@ -335,7 +327,7 @@ export class ItemTplGenerator {
         }
 
         // Make sure there's an underscore separator
-        if (suffix.length > 0 && suffix.at(0) !== "_") {
+        if (suffix.length > 0 && suffix.at(0) != "_") {
             suffix = `_${suffix}`;
         }
 
@@ -343,7 +335,7 @@ export class ItemTplGenerator {
     }
 
     private getAmmoPrefix(item: ITemplateItem): string {
-        const prefix = item._props.Caliber.toUpperCase();
+        const prefix = item._props.Caliber!.toUpperCase();
 
         return this.cleanCaliber(prefix);
     }
@@ -360,13 +352,13 @@ export class ItemTplGenerator {
     }
 
     private getAmmoBoxPrefix(item: ITemplateItem): string {
-        const ammoItem = item._props.StackSlots[0]?._props.filters[0].Filter[0];
+        const ammoItem = item._props.StackSlots![0]?._props.filters[0].Filter[0];
 
         return this.getAmmoPrefix(this.items[ammoItem]);
     }
 
     private getMagazinePrefix(item: ITemplateItem): string {
-        const ammoItem = item._props.Cartridges[0]?._props.filters[0].Filter[0];
+        const ammoItem = item._props.Cartridges![0]?._props.filters[0].Filter[0];
 
         return this.getAmmoPrefix(this.items[ammoItem]);
     }
@@ -377,7 +369,7 @@ export class ItemTplGenerator {
      * @returns The name of the given item
      */
     private getItemName(item) {
-        let itemName: string;
+        let itemName;
 
         // Manual item name overrides
         if (this.itemOverrides[item._id]) {
@@ -428,12 +420,12 @@ export class ItemTplGenerator {
 
         // Add grid size for lootable containers
         if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.LOOT_CONTAINER)) {
-            return `${item._props.Grids[0]?._props.cellsH}X${item._props.Grids[0]?._props.cellsV}`;
+            return `${item._props.Grids![0]?._props.cellsH}X${item._props.Grids![0]?._props.cellsV}`;
         }
 
         // Add ammo caliber to conflicting weapons
         if (this.itemHelper.isOfBaseclass(item._id, BaseClasses.WEAPON)) {
-            const caliber = this.cleanCaliber(item._props.ammoCaliber.toUpperCase());
+            const caliber = this.cleanCaliber(item._props.ammoCaliber!.toUpperCase());
 
             // If the item has a bracketed section at the end of its name, include that
             const itemNameBracketSuffix = itemName?.match(/\((.+?)\)$/);

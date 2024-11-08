@@ -86,3 +86,12 @@ def getTime():
 	formatted_now = now.strftime("%Y-%m-%d_%H-%M-%S")
 	return formatted_now
 	pass
+
+
+def compare_paths(path1, path2):
+	# 将两个路径转换为绝对路径
+	abs_path1 = os.path.abspath(path1)
+	abs_path2 = os.path.abspath(path2)
+	
+	# 比较两个绝对路径是否相同
+	return abs_path1 == abs_path2

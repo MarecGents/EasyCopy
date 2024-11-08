@@ -2,7 +2,7 @@ from src import getFile
 import os
 
 
-def cut(exePath):
+def copy(exePath):
 	config = getFile.get_file(exePath, "res\\config.json")
 	if not config["SourcePath"] and config["AimPath"]:
 		print("路劲缺失，无法执行\"复制\"|\"粘贴\"操作")

@@ -1,7 +1,7 @@
-import { IMessage } from "@spt/models/eft/profile/ISptProfile";
+import { Message } from "@spt/models/eft/profile/ISptProfile";
 
 export interface IGetAllAttachmentsResponse {
-    messages: IMessage[];
+    messages: Message[];
     profiles: any[];
     hasMessagesWithRewards: boolean;
 }

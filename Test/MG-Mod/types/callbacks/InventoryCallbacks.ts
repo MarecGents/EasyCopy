@@ -18,7 +18,6 @@ import { IInventoryTagRequestData } from "@spt/models/eft/inventory/IInventoryTa
 import { IInventoryToggleRequestData } from "@spt/models/eft/inventory/IInventoryToggleRequestData";
 import { IInventoryTransferRequestData } from "@spt/models/eft/inventory/IInventoryTransferRequestData";
 import { IOpenRandomLootContainerRequestData } from "@spt/models/eft/inventory/IOpenRandomLootContainerRequestData";
-import { IPinOrLockItemRequest } from "@spt/models/eft/inventory/IPinOrLockItemRequest";
 import { IRedeemProfileRequestData } from "@spt/models/eft/inventory/IRedeemProfileRequestData";
 import { ISetFavoriteItems } from "@spt/models/eft/inventory/ISetFavoriteItems";
 import { IItemEventRouterResponse } from "@spt/models/eft/itemEvent/IItemEventRouterResponse";
@@ -236,14 +235,5 @@ export class InventoryCallbacks {
         output: IItemEventRouterResponse,
     ): IItemEventRouterResponse {
         return this.questController.failQuest(pmcData, request, sessionID, output);
-    }
-
-    public pinOrLock(
-        pmcData: IPmcData,
-        request: IPinOrLockItemRequest,
-        sessionID: string,
-        output: IItemEventRouterResponse,
-    ): IItemEventRouterResponse {
-        return this.inventoryController.pinOrLock(pmcData, request, sessionID, output);
     }
 }

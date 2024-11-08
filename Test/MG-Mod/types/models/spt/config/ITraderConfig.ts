@@ -1,27 +1,26 @@
 import { MinMax } from "@spt/models/common/MinMax";
 import { IBaseConfig } from "@spt/models/spt/config/IBaseConfig";
-import { ILootRequest } from "@spt/models/spt/services/ILootRequest";
+import { LootRequest } from "@spt/models/spt/services/LootRequest";
 
 export interface ITraderConfig extends IBaseConfig {
     kind: "spt-trader";
-    updateTime: IUpdateTime[];
+    updateTime: UpdateTime[];
     purchasesAreFoundInRaid: boolean;
     /** Should trader reset times be set based on server start time (false = bsg time - on the hour) */
     tradersResetFromServerStart: boolean;
     updateTimeDefault: number;
     traderPriceMultipler: number;
-    fence: IFenceConfig;
-    moddedTraders: IModdedTraders;
+    fence: FenceConfig;
 }
 
-export interface IUpdateTime {
+export interface UpdateTime {
     traderId: string;
     /** Seconds between trader resets */
     seconds: MinMax;
 }
 
-export interface IFenceConfig {
-    discountOptions: IDiscountOptions;
+export interface FenceConfig {
+    discountOptions: DiscountOptions;
     partialRefreshTimeSeconds: number;
     partialRefreshChangePercent: number;
     assortSize: number;
@@ -48,7 +47,7 @@ export interface IFenceConfig {
     /** Max pen value allowed to be listed on flea - affects ammo + ammo boxes */
     ammoMaxPenLimit: number;
     blacklist: string[];
-    coopExtractGift: ICoopExtractReward;
+    coopExtractGift: CoopExtractReward;
     btrDeliveryExpireHours: number;
 }
 
@@ -57,22 +56,16 @@ export interface IItemDurabilityCurrentMax {
     max: MinMax;
 }
 
-export interface ICoopExtractReward extends ILootRequest {
+export interface CoopExtractReward extends LootRequest {
     sendGift: boolean;
     messageLocaleIds: string[];
     giftExpiryHours: number;
 }
 
-export interface IDiscountOptions {
+export interface DiscountOptions {
     assortSize: number;
     itemPriceMult: number;
     presetPriceMult: number;
     weaponPresetMinMax: MinMax;
     equipmentPresetMinMax: MinMax;
-}
-
-/** Custom trader data needed client side for things such as the clothing service */
-export interface IModdedTraders {
-    /** Trader Ids to enable the clothing service for */
-    clothingService: string[];
 }

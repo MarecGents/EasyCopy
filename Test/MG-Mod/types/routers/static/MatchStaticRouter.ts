@@ -1,14 +1,12 @@
 import { MatchCallbacks } from "@spt/callbacks/MatchCallbacks";
 import { RouteAction, StaticRouter } from "@spt/di/Router";
 import { IEmptyRequestData } from "@spt/models/eft/common/IEmptyRequestData";
-import { IMetrics } from "@spt/models/eft/common/tables/IMatch";
 import { IGetBodyResponseData } from "@spt/models/eft/httpResponse/IGetBodyResponseData";
 import { INullResponseData } from "@spt/models/eft/httpResponse/INullResponseData";
 import { IGroupCharacter } from "@spt/models/eft/match/IGroupCharacter";
 import { IMatchGroupCurrentResponse } from "@spt/models/eft/match/IMatchGroupCurrentResponse";
 import { IMatchGroupStatusResponse } from "@spt/models/eft/match/IMatchGroupStatusResponse";
 import { IProfileStatusResponse } from "@spt/models/eft/match/IProfileStatusResponse";
-import { IStartLocalRaidResponseData } from "@spt/models/eft/match/IStartLocalRaidResponseData";
 import { inject, injectable } from "tsyringe";
 
 @injectable()
@@ -211,15 +209,15 @@ export class MatchStaticRouter extends StaticRouter {
                 },
             ),
             new RouteAction(
-                "/client/putMetrics",
+                "/client/match/offline/end",
                 async (url: string, info: any, sessionID: string, output: string): Promise<INullResponseData> => {
-                    return this.matchCallbacks.putMetrics(url, info, sessionID);
+                    return this.matchCallbacks.endOfflineRaid(url, info, sessionID);
                 },
             ),
             new RouteAction(
-                "/client/analytics/event-disconnect",
+                "/client/putMetrics",
                 async (url: string, info: any, sessionID: string, output: string): Promise<INullResponseData> => {
-                    return this.matchCallbacks.eventDisconnect(url, info, sessionID);
+                    return this.matchCallbacks.putMetrics(url, info, sessionID);
                 },
             ),
             new RouteAction(
@@ -229,7 +227,7 @@ export class MatchStaticRouter extends StaticRouter {
                     info: any,
                     sessionID: string,
                     output: string,
-                ): Promise<IGetBodyResponseData<IMetrics>> => {
+                ): Promise<IGetBodyResponseData<string>> => {
                     return this.matchCallbacks.getMetrics(url, info, sessionID);
                 },
             ),
@@ -254,23 +252,6 @@ export class MatchStaticRouter extends StaticRouter {
                     output: string,
                 ): Promise<IGetBodyResponseData<boolean>> => {
                     return this.matchCallbacks.removePlayerFromGroup(url, info, sessionID);
-                },
-            ),
-            new RouteAction(
-                "/client/match/local/start",
-                async (
-                    url: string,
-                    info: any,
-                    sessionID: string,
-                    output: string,
-                ): Promise<IGetBodyResponseData<IStartLocalRaidResponseData>> => {
-                    return this.matchCallbacks.startLocalRaid(url, info, sessionID);
-                },
-            ),
-            new RouteAction(
-                "/client/match/local/end",
-                async (url: string, info: any, sessionID: string, output: string): Promise<INullResponseData> => {
-                    return this.matchCallbacks.endLocalRaid(url, info, sessionID);
                 },
             ),
         ]);

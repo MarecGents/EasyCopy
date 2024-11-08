@@ -6,16 +6,16 @@ import { BotHelper } from "@spt/helpers/BotHelper";
 import { ProfileHelper } from "@spt/helpers/ProfileHelper";
 import { WeightedRandomHelper } from "@spt/helpers/WeightedRandomHelper";
 import { MinMax } from "@spt/models/common/MinMax";
-import { ICondition, IGenerateBotsRequestData } from "@spt/models/eft/bot/IGenerateBotsRequestData";
+import { Condition, IGenerateBotsRequestData } from "@spt/models/eft/bot/IGenerateBotsRequestData";
 import { IPmcData } from "@spt/models/eft/common/IPmcData";
 import { IBotBase } from "@spt/models/eft/common/tables/IBotBase";
 import { IBotCore } from "@spt/models/eft/common/tables/IBotCore";
-import { IDifficultyCategories } from "@spt/models/eft/common/tables/IBotType";
+import { Difficulty } from "@spt/models/eft/common/tables/IBotType";
 import { IGetRaidConfigurationRequestData } from "@spt/models/eft/match/IGetRaidConfigurationRequestData";
 import { ConfigTypes } from "@spt/models/enums/ConfigTypes";
 import { SideType } from "@spt/models/enums/SideType";
 import { WildSpawnTypeNumber } from "@spt/models/enums/WildSpawnTypeNumber";
-import { IBotGenerationDetails } from "@spt/models/spt/bots/BotGenerationDetails";
+import { BotGenerationDetails } from "@spt/models/spt/bots/BotGenerationDetails";
 import { IBotConfig } from "@spt/models/spt/config/IBotConfig";
 import { IPmcConfig } from "@spt/models/spt/config/IPmcConfig";
 import { ILogger } from "@spt/models/spt/utils/ILogger";
@@ -86,18 +86,15 @@ export class BotController {
      * Adjust PMC settings to ensure they engage the correct bot types
      * @param type what bot the server is requesting settings for
      * @param diffLevel difficulty level server requested settings for
-     * @param raidConfig OPTIONAL - applicationContext Data stored at start of raid
      * @param ignoreRaidSettings should raid settings chosen pre-raid be ignored
      * @returns Difficulty object
      */
-    public getBotDifficulty(
-        type: string,
-        diffLevel: string,
-        raidConfig?: IGetRaidConfigurationRequestData,
-        ignoreRaidSettings = false,
-    ): IDifficultyCategories {
+    public getBotDifficulty(type: string, diffLevel: string, ignoreRaidSettings = false): Difficulty {
         let difficulty = diffLevel.toLowerCase();
 
+        const raidConfig = this.applicationContext
+            .getLatestValue(ContextVariableType.RAID_CONFIGURATION)
+            ?.getValue<IGetRaidConfigurationRequestData>();
         if (!(raidConfig || ignoreRaidSettings)) {
             this.logger.error(
                 this.localisationService.getText("bot-missing_application_context", "RAID_CONFIGURATION"),
@@ -112,8 +109,31 @@ export class BotController {
                 this.botDifficultyHelper.convertBotDifficultyDropdownToBotDifficulty(botDifficultyDropDownValue);
         }
 
-        const botDb = this.databaseService.getBots();
-        return this.botDifficultyHelper.getBotDifficultySettings(type, difficulty, botDb);
+        let difficultySettings: Difficulty;
+        const lowercasedBotType = type.toLowerCase();
+        switch (lowercasedBotType) {
+            case this.pmcConfig.bearType.toLowerCase():
+                difficultySettings = this.botDifficultyHelper.getPmcDifficultySettings(
+                    "bear",
+                    difficulty,
+                    this.pmcConfig.usecType,
+                    this.pmcConfig.bearType,
+                );
+                break;
+            case this.pmcConfig.usecType.toLowerCase():
+                difficultySettings = this.botDifficultyHelper.getPmcDifficultySettings(
+                    "usec",
+                    difficulty,
+                    this.pmcConfig.usecType,
+                    this.pmcConfig.bearType,
+                );
+                break;
+            default:
+                difficultySettings = this.botDifficultyHelper.getBotDifficultySettings(type, difficulty);
+                break;
+        }
+
+        return difficultySettings;
     }
 
     public getAllBotDifficulties(): Record<string, any> {
@@ -130,15 +150,13 @@ export class BotController {
 
             const botDetails = botTypesDb[botType];
             if (!botDetails?.difficulty) {
-                this.logger.warning(`Unable to find bot: ${botType} difficulty values`);
-
                 continue;
             }
 
             const botDifficulties = Object.keys(botDetails.difficulty);
             result[enumType] = {};
             for (const difficulty of botDifficulties) {
-                result[enumType][difficulty] = this.getBotDifficulty(enumType, difficulty, null, true);
+                result[enumType][difficulty] = this.getBotDifficulty(enumType, difficulty, true);
             }
         }
 
@@ -154,10 +172,12 @@ export class BotController {
     public async generate(sessionId: string, info: IGenerateBotsRequestData): Promise<IBotBase[]> {
         const pmcProfile = this.profileHelper.getPmcProfile(sessionId);
 
+        // If there's more than 1 condition, this is the first time client has requested bots
+        // Client sends every bot type it will need in raid
         // Use this opportunity to create and cache bots for later retreval
-        const multipleBotTypesRequested = info.conditions.length > 1;
-        if (multipleBotTypesRequested) {
-            return this.generateMultipleBotsAndCache(info, pmcProfile, sessionId);
+        const isFirstGen = info.conditions.length > 1;
+        if (isFirstGen) {
+            return this.generateBotsFirstTime(info, pmcProfile, sessionId);
         }
 
         return this.returnSingleBotFromCache(sessionId, info);
@@ -168,14 +188,25 @@ export class BotController {
      * @param request Bot generation request object
      * @param pmcProfile Player profile
      * @param sessionId Session id
-     * @returns IBotBase[]
+     * @returns
      */
-    protected async generateMultipleBotsAndCache(
+    public async generateBotsFirstTime(
         request: IGenerateBotsRequestData,
         pmcProfile: IPmcData,
         sessionId: string,
     ): Promise<IBotBase[]> {
-        const raidSettings = this.getMostRecentRaidSettings();
+        // Clear bot cache before any work starts
+        this.botGenerationCacheService.clearStoredBots();
+
+        const raidSettings = this.applicationContext
+            .getLatestValue(ContextVariableType.RAID_CONFIGURATION)
+            ?.getValue<IGetRaidConfigurationRequestData>();
+
+        if (raidSettings === undefined) {
+            throw new Error(this.localisationService.getText("bot-unable_to_load_raid_settings_from_appcontext"));
+        }
+        const pmcLevelRangeForMap =
+            this.pmcConfig.locationSpecificPmcLevelOverride[raidSettings.location.toLowerCase()];
 
         const allPmcsHaveSameNameAsPlayer = this.randomUtil.getChance100(
             this.pmcConfig.allPMCsHavePlayerNameWithRandomPrefixChance,
@@ -187,45 +218,18 @@ export class BotController {
                 condition,
                 pmcProfile,
                 allPmcsHaveSameNameAsPlayer,
-                raidSettings,
+                pmcLevelRangeForMap,
                 this.botConfig.presetBatch[condition.Role],
-                this.botHelper.isBotPmc(condition.Role),
+                false,
             );
 
             conditionPromises.push(this.generateWithBotDetails(condition, botGenerationDetails, sessionId));
         }
 
-        await Promise.all(conditionPromises)
-            .then((p) => Promise.all(p))
-            .catch((ex) => {
-                this.logger.error(ex);
-            });
+        await Promise.all(conditionPromises).then((p) => Promise.all(p)).catch((ex) => {
+            this.logger.error(ex);
+        });
         return [];
-    }
-
-    protected getMostRecentRaidSettings(): IGetRaidConfigurationRequestData {
-        const raidSettings = this.applicationContext
-            .getLatestValue(ContextVariableType.RAID_CONFIGURATION)
-            ?.getValue<IGetRaidConfigurationRequestData>();
-
-        if (raidSettings === undefined) {
-            this.logger.warning(this.localisationService.getText("bot-unable_to_load_raid_settings_from_appcontext"));
-        }
-
-        return raidSettings;
-    }
-
-    /**
-     * Get min/max level range values for a specific map
-     * @param location Map name e.g. factory4_day
-     * @returns MinMax
-     */
-    protected getPmcLevelRangeForMap(location: string): MinMax {
-        if (!location) {
-            return undefined;
-        }
-
-        return this.pmcConfig.locationSpecificPmcLevelOverride[location.toLowerCase()];
     }
 
     /**
@@ -233,22 +237,22 @@ export class BotController {
      * @param condition Client data defining bot type and difficulty
      * @param pmcProfile Player who is generating bots
      * @param allPmcsHaveSameNameAsPlayer Should all PMCs have same name as player
-     * @param raidSettings Settings chosen pre-raid by player
+     * @param pmcLevelRangeForMap Min/max levels for PMCs to generate within
      * @param botCountToGenerate How many bots to generate
      * @param generateAsPmc Force bot being generated a PMC
      * @returns BotGenerationDetails
      */
     protected getBotGenerationDetailsForWave(
-        condition: ICondition,
+        condition: Condition,
         pmcProfile: IPmcData,
         allPmcsHaveSameNameAsPlayer: boolean,
-        raidSettings: IGetRaidConfigurationRequestData,
+        pmcLevelRangeForMap: MinMax,
         botCountToGenerate: number,
         generateAsPmc: boolean,
-    ): IBotGenerationDetails {
+    ): BotGenerationDetails {
         return {
             isPmc: generateAsPmc,
-            side: generateAsPmc ? this.botHelper.getPmcSideByRole(condition.Role) : SideType.SAVAGE,
+            side: SideType.SAVAGE,
             role: condition.Role,
             playerLevel: this.getPlayerLevelFromProfile(pmcProfile),
             playerName: pmcProfile.Info.Nickname,
@@ -256,7 +260,7 @@ export class BotController {
             botRelativeLevelDeltaMin: this.pmcConfig.botRelativeLevelDeltaMin,
             botCountToGenerate: botCountToGenerate,
             botDifficulty: condition.Difficulty,
-            locationSpecificPmcLevelOverride: this.getPmcLevelRangeForMap(raidSettings?.location), // Min/max levels for PMCs to generate within
+            locationSpecificPmcLevelOverride: pmcLevelRangeForMap,
             isPlayerScav: false,
             allPmcsHaveSameNameAsPlayer: allPmcsHaveSameNameAsPlayer,
         };
@@ -279,8 +283,8 @@ export class BotController {
      * @returns A promise for the bots to be done generating
      */
     protected async generateWithBotDetails(
-        condition: ICondition,
-        botGenerationDetails: IBotGenerationDetails,
+        condition: Condition,
+        botGenerationDetails: BotGenerationDetails,
         sessionId: string,
     ): Promise<void> {
         const isEventBot = condition.Role.toLowerCase().includes("event");
@@ -292,25 +296,22 @@ export class BotController {
             );
         }
 
-        // Create a compound key to store bots in cache against
-        const cacheKey = this.botGenerationCacheService.createCacheKey(
-            botGenerationDetails.eventRole ?? botGenerationDetails.role,
-            botGenerationDetails.botDifficulty,
-        );
-
-        // Get number of bots we have in cache
-        const botCacheCount = this.botGenerationCacheService.getCachedBotCount(cacheKey);
-        const botPromises: Promise<void>[] = [];
-        if (botCacheCount > botGenerationDetails.botCountToGenerate) {
-            return;
+        // Custom map waves can have spt roles in them
+        // Is bot type pmcUSEC/pmcBEAR, set is pmc true and set side
+        if (this.botHelper.botRoleIsPmc(condition.Role)) {
+            botGenerationDetails.isPmc = true;
+            botGenerationDetails.side = this.botHelper.getPmcSideByRole(condition.Role);
         }
 
-        // We're below desired count, add bots to cache
+        // Loop over and make x bots for this bot wave
+        const cacheKey = `${
+            botGenerationDetails.eventRole ?? botGenerationDetails.role
+        }${botGenerationDetails.botDifficulty}`;
+        const botPromises: Promise<void>[] = [];
         for (let i = 0; i < botGenerationDetails.botCountToGenerate; i++) {
             const detailsClone = this.cloner.clone(botGenerationDetails);
             botPromises.push(this.generateSingleBotAndStoreInCache(detailsClone, sessionId, cacheKey));
         }
-
         return Promise.all(botPromises).then(() => {
             this.logger.debug(
                 `Generated ${botGenerationDetails.botCountToGenerate} ${botGenerationDetails.role} (${
@@ -328,7 +329,7 @@ export class BotController {
      * @returns A promise for the bot to be stored
      */
     protected async generateSingleBotAndStoreInCache(
-        botGenerationDetails: IBotGenerationDetails,
+        botGenerationDetails: BotGenerationDetails,
         sessionId: string,
         cacheKey: string,
     ): Promise<void> {
@@ -345,17 +346,22 @@ export class BotController {
      * @param request Bot generation request object
      * @returns Single IBotBase object
      */
-    protected async returnSingleBotFromCache(
-        sessionId: string,
-        request: IGenerateBotsRequestData,
-    ): Promise<IBotBase[]> {
+    public async returnSingleBotFromCache(sessionId: string, request: IGenerateBotsRequestData): Promise<IBotBase[]> {
         const pmcProfile = this.profileHelper.getPmcProfile(sessionId);
         const requestedBot = request.conditions[0];
 
-        const raidSettings = this.getMostRecentRaidSettings();
+        const raidSettings = this.applicationContext
+            .getLatestValue(ContextVariableType.RAID_CONFIGURATION)
+            ?.getValue<IGetRaidConfigurationRequestData>();
 
-        // Create generation request for when cache is empty
-        const condition: ICondition = {
+        if (raidSettings === undefined) {
+            throw new Error(this.localisationService.getText("bot-unable_to_load_raid_settings_from_appcontext"));
+        }
+        const pmcLevelRangeForMap =
+            this.pmcConfig.locationSpecificPmcLevelOverride[raidSettings.location.toLowerCase()];
+
+        // Create gen request for when cache is empty
+        const condition: Condition = {
             Role: requestedBot.Role,
             Limit: 5,
             Difficulty: requestedBot.Difficulty,
@@ -364,9 +370,9 @@ export class BotController {
             condition,
             pmcProfile,
             false,
-            raidSettings,
+            pmcLevelRangeForMap,
             this.botConfig.presetBatch[requestedBot.Role],
-            this.botHelper.isBotPmc(requestedBot.Role),
+            false,
         );
 
         // Event bots need special actions to occur, set data up for them
@@ -379,16 +385,17 @@ export class BotController {
             );
         }
 
-        // Does non pmc bot have a chance of being converted into a pmc
-        const convertIntoPmcChanceMinMax = this.getPmcConversionMinMaxForLocation(
-            requestedBot.Role,
-            raidSettings?.location,
-        );
-        if (convertIntoPmcChanceMinMax && !botGenerationDetails.isPmc) {
-            // Bot has % chance to become pmc and isnt one pmc already
-            const convertToPmc = this.botHelper.rollChanceToBePmc(convertIntoPmcChanceMinMax);
+        if (this.botHelper.isBotPmc(botGenerationDetails.role)) {
+            botGenerationDetails.isPmc = true;
+            botGenerationDetails.side = this.botHelper.getPmcSideByRole(requestedBot.Role);
+        }
+
+        // Roll chance to be pmc if type is allowed to be one
+        const botConvertRateMinMax = this.pmcConfig.convertIntoPmcChance[requestedBot.Role.toLowerCase()];
+        if (botConvertRateMinMax) {
+            // Should bot become PMC
+            const convertToPmc = this.botHelper.rollChanceToBePmc(requestedBot.Role, botConvertRateMinMax);
             if (convertToPmc) {
-                // Update requirements
                 botGenerationDetails.isPmc = true;
                 botGenerationDetails.role = this.botHelper.getRandomizedPmcRole();
                 botGenerationDetails.side = this.botHelper.getPmcSideByRole(botGenerationDetails.role);
@@ -411,14 +418,13 @@ export class BotController {
             }
         }
 
-        // Create a compound key to store bots in cache against
-        const cacheKey = this.botGenerationCacheService.createCacheKey(
-            botGenerationDetails.eventRole ?? botGenerationDetails.role,
-            botGenerationDetails.botDifficulty,
-        );
+        // Construct cache key
+        const cacheKey = `${
+            botGenerationDetails.eventRole ?? botGenerationDetails.role
+        }${botGenerationDetails.botDifficulty}`;
 
         // Check cache for bot using above key
-        if (!this.botGenerationCacheService.cacheHasBotWithKey(cacheKey)) {
+        if (!this.botGenerationCacheService.cacheHasBotOfRole(cacheKey)) {
             const botPromises: Promise<void>[] = [];
             // No bot in cache, generate new and return one
             for (let i = 0; i < botGenerationDetails.botCountToGenerate; i++) {
@@ -440,17 +446,8 @@ export class BotController {
         return [desiredBot];
     }
 
-    protected getPmcConversionMinMaxForLocation(requestedBotRole: string, location: string): MinMax {
-        const mapSpecificConversionValues = this.pmcConfig.convertIntoPmcChance[location?.toLowerCase()];
-        if (!mapSpecificConversionValues) {
-            return this.pmcConfig.convertIntoPmcChance.default[requestedBotRole];
-        }
-
-        return mapSpecificConversionValues[requestedBotRole?.toLowerCase()];
-    }
-
     protected updateBotGenerationDetailsToRandomBoss(
-        botGenerationDetails: IBotGenerationDetails,
+        botGenerationDetails: BotGenerationDetails,
         possibleBossTypeWeights: Record<string, number>,
     ): void {
         // Seems Actual bosses have the same Brain issues like PMC gaining Boss Brains We cant use all bosses

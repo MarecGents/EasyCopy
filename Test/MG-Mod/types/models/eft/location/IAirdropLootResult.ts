@@ -1,6 +1,6 @@
-import { ILootItem } from "@spt/models/spt/services/LootItem";
+import { LootItem } from "@spt/models/spt/services/LootItem";
 
 export interface IAirdropLootResult {
     dropType: string;
-    loot: ILootItem[];
+    loot: LootItem[];
 }

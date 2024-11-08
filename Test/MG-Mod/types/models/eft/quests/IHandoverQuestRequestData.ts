@@ -2,10 +2,10 @@ export interface IHandoverQuestRequestData {
     Action: "QuestHandover";
     qid: string;
     conditionId: string;
-    items: IHandoverItem[];
+    items: Item[];
 }
 
-export interface IHandoverItem {
+export interface Item {
     id: string;
     count: number;
 }

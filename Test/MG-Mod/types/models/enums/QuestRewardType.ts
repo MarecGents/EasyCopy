@@ -10,5 +10,4 @@ export enum QuestRewardType {
     TRADER_STANDING_RESTORE = "TraderStandingRestore",
     STASH_ROWS = "StashRows",
     ACHIEVEMENT = "Achievement",
-    POCKETS = "Pockets",
 }

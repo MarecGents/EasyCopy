@@ -4,9 +4,9 @@ import { ItemHelper } from "@spt/helpers/ItemHelper";
 import { ProfileHelper } from "@spt/helpers/ProfileHelper";
 import { IPmcData } from "@spt/models/eft/common/IPmcData";
 import { BanType } from "@spt/models/eft/common/tables/IBotBase";
-import { IItem } from "@spt/models/eft/common/tables/IItem";
-import { IProfileTraderTemplate } from "@spt/models/eft/common/tables/IProfileTemplate";
-import { ITraderAssort, ITraderBase, ITraderLoyaltyLevel } from "@spt/models/eft/common/tables/ITrader";
+import { Item } from "@spt/models/eft/common/tables/IItem";
+import { ProfileTraderTemplate } from "@spt/models/eft/common/tables/IProfileTemplate";
+import { ITraderAssort, ITraderBase, LoyaltyLevel } from "@spt/models/eft/common/tables/ITrader";
 import { ISptProfile } from "@spt/models/eft/profile/ISptProfile";
 import { ConfigTypes } from "@spt/models/enums/ConfigTypes";
 import { GameEditions } from "@spt/models/enums/GameEditions";
@@ -52,13 +52,7 @@ export class TraderHelper {
      * @param sessionID Players id
      * @returns Trader base
      */
-    public getTrader(traderID: string, sessionID: string): ITraderBase | any {
-        if (traderID === "ragfair") {
-            return {
-                currency: "RUB",
-            };
-        }
-
+    public getTrader(traderID: string, sessionID: string): ITraderBase | undefined {
         const pmcData = this.profileHelper.getPmcProfile(sessionID);
         if (!pmcData) {
             throw new error(this.localisationService.getText("trader-unable_to_find_profile_with_id", sessionID));
@@ -96,7 +90,7 @@ export class TraderHelper {
      * @param assortId Id of assort to find
      * @returns Item object
      */
-    public getTraderAssortItemByAssortId(traderId: string, assortId: string): IItem | undefined {
+    public getTraderAssortItemByAssortId(traderId: string, assortId: string): Item | undefined {
         const traderAssorts = this.getTraderAssortsByTraderId(traderId);
         if (!traderAssorts) {
             this.logger.debug(`No assorts on trader: ${traderId} found`);
@@ -131,7 +125,7 @@ export class TraderHelper {
         }
 
         const pmcData = fullProfile.characters.pmc;
-        const rawProfileTemplate: IProfileTraderTemplate =
+        const rawProfileTemplate: ProfileTraderTemplate =
             profiles[fullProfile.info.edition][pmcData.Info.Side.toLowerCase()].trader;
 
         pmcData.TradersInfo[traderID] = {
@@ -155,13 +149,13 @@ export class TraderHelper {
                 // Force suit ids into profile
                 this.addSuitsToProfile(
                     fullProfile,
-                    clothing.map((suit) => suit.suiteId),
+                    clothing!.map((suit) => suit.suiteId),
                 );
             }
         }
 
         if ((rawProfileTemplate.fleaBlockedDays ?? 0) > 0) {
-            const newBanDateTime = this.timeUtil.getTimeStampFromNowDays(rawProfileTemplate.fleaBlockedDays);
+            const newBanDateTime = this.timeUtil.getTimeStampFromNowDays(rawProfileTemplate.fleaBlockedDays!);
             const existingBan = pmcData.Info.Bans.find((ban) => ban.banType === BanType.RAGFAIR);
             if (existingBan) {
                 existingBan.dateTime = newBanDateTime;
@@ -184,7 +178,7 @@ export class TraderHelper {
      * @param rawProfileTemplate Raw profile from profiles.json to look up standing from
      * @returns Standing value
      */
-    protected getStartingStanding(traderId: string, rawProfileTemplate: IProfileTraderTemplate): number {
+    protected getStartingStanding(traderId: string, rawProfileTemplate: ProfileTraderTemplate): number {
         const initialStanding =
             rawProfileTemplate.initialStanding[traderId] ?? rawProfileTemplate.initialStanding.default;
         // Edge case for Lightkeeper, 0 standing means seeing `Make Amends - Buyout` quest
@@ -221,16 +215,7 @@ export class TraderHelper {
      */
     public setTraderUnlockedState(traderId: string, status: boolean, sessionId: string): void {
         const pmcData = this.profileHelper.getPmcProfile(sessionId);
-        const profileTraderData = pmcData.TradersInfo[traderId];
-        if (!profileTraderData) {
-            this.logger.error(
-                `Unable to set trader ${traderId} unlocked state to: ${status} as trader cannot be found in profile`,
-            );
-
-            return;
-        }
-
-        profileTraderData.unlocked = status;
+        pmcData.TradersInfo[traderId].unlocked = status;
     }
 
     /**
@@ -349,12 +334,12 @@ export class TraderHelper {
                 },
             );
             return undefined;
+        } else {
+            return this.randomUtil.getInt(traderDetails.seconds.min, traderDetails.seconds.max);
         }
-
-        return this.randomUtil.getInt(traderDetails.seconds.min, traderDetails.seconds.max);
     }
 
-    public getLoyaltyLevel(traderID: string, pmcData: IPmcData): ITraderLoyaltyLevel {
+    public getLoyaltyLevel(traderID: string, pmcData: IPmcData): LoyaltyLevel {
         const traderBase = this.databaseService.getTrader(traderID).base;
         let loyaltyLevel = pmcData.TradersInfo[traderID].loyaltyLevel;
 
@@ -377,7 +362,7 @@ export class TraderHelper {
     public addTraderPurchasesToPlayerProfile(
         sessionID: string,
         newPurchaseDetails: { items: { itemId: string; count: number }[]; traderId: string },
-        itemPurchased: IItem,
+        itemPurchased: Item,
     ): void {
         const profile = this.profileHelper.getFullProfile(sessionID);
         const traderId = newPurchaseDetails.traderId;
@@ -405,14 +390,14 @@ export class TraderHelper {
             if (
                 profile.traderPurchases[traderId][purchasedItem.itemId].count + purchasedItem.count >
                 this.getAccountTypeAdjustedTraderPurchaseLimit(
-                    itemPurchased.upd.BuyRestrictionMax,
+                    itemPurchased.upd!.BuyRestrictionMax!,
                     profile.characters.pmc.Info.GameVersion,
                 )
             ) {
                 throw new Error(
                     this.localisationService.getText("trader-unable_to_purchase_item_limit_reached", {
                         traderId: traderId,
-                        limit: itemPurchased.upd.BuyRestrictionMax,
+                        limit: itemPurchased.upd!.BuyRestrictionMax,
                     }),
                 );
             }

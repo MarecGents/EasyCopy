@@ -88,11 +88,9 @@ export interface IServerFeatures {
 
 export interface IChatbotFeatures {
     sptFriendEnabled: boolean;
-    sptFriendGiftsEnabled: boolean;
     commandoEnabled: boolean;
     commandoFeatures: ICommandoFeatures;
     commandUseLimits: Record<string, number>;
-    ids: Record<string, string>;
 }
 
 export interface ICommandoFeatures {

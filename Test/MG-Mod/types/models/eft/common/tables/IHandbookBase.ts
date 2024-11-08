@@ -1,9 +1,9 @@
 export interface IHandbookBase {
-    Categories: IHandbookCategory[];
-    Items: IHandbookItem[];
+    Categories: Category[];
+    Items: HandbookItem[];
 }
 
-export interface IHandbookCategory {
+export interface Category {
     Id: string;
     ParentId?: string;
     Icon: string;
@@ -11,7 +11,7 @@ export interface IHandbookCategory {
     Order: string;
 }
 
-export interface IHandbookItem {
+export interface HandbookItem {
     Id: string;
     ParentId: string;
     Price: number;

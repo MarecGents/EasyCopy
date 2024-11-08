@@ -1,12 +1,12 @@
-import { IItem } from "@spt/models/eft/common/tables/IItem";
+import { Item } from "@spt/models/eft/common/tables/IItem";
 import { DogtagExchangeSide } from "@spt/models/enums/DogtagExchangeSide";
 import { MemberCategory } from "@spt/models/enums/MemberCategory";
 
 export interface IRagfairOffer {
-    sellResult?: ISellResult[];
+    sellResult?: SellResult[];
     _id: string;
-    items: IItem[];
-    requirements: IOfferRequirement[];
+    items: Item[];
+    requirements: OfferRequirement[];
     root: string;
     intId: number;
     /** Handbook price */
@@ -15,7 +15,6 @@ export interface IRagfairOffer {
     requirementsCost: number;
     startTime: number;
     endTime: number;
-    /** True when offer is sold as pack */
     sellInOnePiece: boolean;
     /** Rouble price - same as requirementsCost */
     summaryCost: number;
@@ -29,7 +28,7 @@ export interface IRagfairOffer {
     locked?: boolean;
 }
 
-export interface IOfferRequirement {
+export interface OfferRequirement {
     _tpl: string;
     count: number;
     onlyFunctional: boolean;
@@ -48,7 +47,7 @@ export interface IRagfairOfferUser {
     aid?: number;
 }
 
-export interface ISellResult {
+export interface SellResult {
     sellTime: number;
     amount: number;
 }

@@ -1,4 +1,4 @@
-export class ILootItem {
+export class LootItem {
     id?: string;
     tpl: string;
     isPreset: boolean;

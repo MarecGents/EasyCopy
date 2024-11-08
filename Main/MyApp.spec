@@ -3,7 +3,7 @@
 
 a = Analysis(
     ['APP.py'],
-    pathex=["."],
+    pathex=[],
     binaries=[],
     datas=[
     ('./src/getFile.py','.'),

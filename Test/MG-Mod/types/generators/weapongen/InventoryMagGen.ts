@@ -1,17 +1,17 @@
-import { IInventory } from "@spt/models/eft/common/tables/IBotBase";
-import { IGenerationData } from "@spt/models/eft/common/tables/IBotType";
+import { Inventory } from "@spt/models/eft/common/tables/IBotBase";
+import { GenerationData } from "@spt/models/eft/common/tables/IBotType";
 import { ITemplateItem } from "@spt/models/eft/common/tables/ITemplateItem";
 
 export class InventoryMagGen {
     constructor(
-        private magCounts: IGenerationData,
+        private magCounts: GenerationData,
         private magazineTemplate: ITemplateItem,
         private weaponTemplate: ITemplateItem,
         private ammoTemplate: ITemplateItem,
-        private pmcInventory: IInventory,
+        private pmcInventory: Inventory,
     ) {}
 
-    public getMagCount(): IGenerationData {
+    public getMagCount(): GenerationData {
         return this.magCounts;
     }
 
@@ -27,7 +27,7 @@ export class InventoryMagGen {
         return this.ammoTemplate;
     }
 
-    public getPmcInventory(): IInventory {
+    public getPmcInventory(): Inventory {
         return this.pmcInventory;
     }
 }

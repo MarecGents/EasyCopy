@@ -5,9 +5,9 @@ import { HandbookHelper } from "@spt/helpers/HandbookHelper";
 import { InventoryHelper } from "@spt/helpers/InventoryHelper";
 import { ItemHelper } from "@spt/helpers/ItemHelper";
 import { WeightedRandomHelper } from "@spt/helpers/WeightedRandomHelper";
-import { IInventory as PmcInventory } from "@spt/models/eft/common/tables/IBotBase";
-import { IBotType, IInventory, IModsChances } from "@spt/models/eft/common/tables/IBotType";
-import { IItem } from "@spt/models/eft/common/tables/IItem";
+import { Inventory as PmcInventory } from "@spt/models/eft/common/tables/IBotBase";
+import { IBotType, Inventory, ModsChances } from "@spt/models/eft/common/tables/IBotType";
+import { Item } from "@spt/models/eft/common/tables/IItem";
 import { ITemplateItem } from "@spt/models/eft/common/tables/ITemplateItem";
 import { BaseClasses } from "@spt/models/enums/BaseClasses";
 import { ConfigTypes } from "@spt/models/enums/ConfigTypes";
@@ -260,7 +260,6 @@ export class BotLootGenerator {
                 );
             }
 
-            const backpackLootRoubleTotal = this.getBackpackRoubleTotalByLevel(botLevel, isPmc);
             this.addLootFromPool(
                 this.botLootCacheService.getLootFromCache(botRole, isPmc, LootCacheType.BACKPACK, botJsonTemplate),
                 [EquipmentSlots.BACKPACK],
@@ -268,7 +267,7 @@ export class BotLootGenerator {
                 botInventory,
                 botRole,
                 botItemLimits,
-                backpackLootRoubleTotal,
+                this.pmcConfig.maxBackpackLootTotalRub,
                 isPmc,
                 containersIdFull,
             );
@@ -322,24 +321,6 @@ export class BotLootGenerator {
     }
 
     /**
-     * Gets the rouble cost total for loot in a bots backpack by the bots levl
-     * Will return 0 for non PMCs
-     * @param botLevel Bots level
-     * @param isPmc Is the bot a PMC
-     * @returns number
-     */
-    protected getBackpackRoubleTotalByLevel(botLevel: number, isPmc: boolean): number {
-        if (isPmc) {
-            const matchingValue = this.pmcConfig.maxBackpackLootTotalRub.find(
-                (minMaxValue) => botLevel >= minMaxValue.min && botLevel <= minMaxValue.max,
-            );
-            return matchingValue.value;
-        }
-
-        return 0;
-    }
-
-    /**
      * Get an array of the containers a bot has on them (pockets/backpack/vest)
      * @param botInventory Bot to check
      * @returns Array of available slots
@@ -387,6 +368,18 @@ export class BotLootGenerator {
             0,
             true,
         );
+    }
+
+    /**
+     * Get a biased random number
+     * @param min Smallest size
+     * @param max Biggest size
+     * @param nValue Value to bias choice
+     * @returns Chosen number
+     */
+    protected getRandomisedCount(min: number, max: number, nValue: number): number {
+        const range = max - min;
+        return this.randomUtil.getBiasedRandomNumber(min, max, range, nValue);
     }
 
     /**
@@ -445,7 +438,7 @@ export class BotLootGenerator {
                 }
 
                 const newRootItemId = this.hashUtil.generate();
-                const itemWithChildrenToAdd: IItem[] = [
+                const itemWithChildrenToAdd: Item[] = [
                     {
                         _id: newRootItemId,
                         _tpl: itemToAddTemplate._id,
@@ -483,7 +476,7 @@ export class BotLootGenerator {
                         }
                     }
                 }
-                // Some items (ammoBox/ammo) need extra changes
+                // Some items (ammBox/ammo) need extra changes
                 this.addRequiredChildItemsToParent(itemToAddTemplate, itemWithChildrenToAdd, isPmc, botRole);
 
                 // Attempt to add item to container(s)
@@ -509,9 +502,9 @@ export class BotLootGenerator {
                     fitItemIntoContainerAttempts++;
                     if (fitItemIntoContainerAttempts >= 4) {
                         this.logger.debug(
-                            `Failed placing item: ${i} of: ${totalItemCount} items into: ${botRole} containers: ${equipmentSlots.join(
+                            `Failed to place item ${i} of ${totalItemCount} items into ${botRole} containers: ${equipmentSlots.join(
                                 ",",
-                            )}. Tried: ${fitItemIntoContainerAttempts} times, reason: ${
+                            )}. Tried ${fitItemIntoContainerAttempts} times, reason: ${
                                 ItemAddedResult[itemAddedResult]
                             }, skipping`,
                         );
@@ -537,8 +530,8 @@ export class BotLootGenerator {
         }
     }
 
-    protected createWalletLoot(walletId: string): IItem[][] {
-        const result: IItem[][] = [];
+    protected createWalletLoot(walletId: string): Item[][] {
+        const result: Item[][] = [];
 
         // Choose how many stacks of currency will be added to wallet
         const itemCount = this.randomUtil.getInt(
@@ -572,7 +565,7 @@ export class BotLootGenerator {
      */
     protected addRequiredChildItemsToParent(
         itemToAddTemplate: ITemplateItem,
-        itemToAddChildrenTo: IItem[],
+        itemToAddChildrenTo: Item[],
         isPmc: boolean,
         botRole: string,
     ): void {
@@ -607,8 +600,8 @@ export class BotLootGenerator {
         sessionId: string,
         botInventory: PmcInventory,
         equipmentSlot: string,
-        templateInventory: IInventory,
-        modChances: IModsChances,
+        templateInventory: Inventory,
+        modChances: ModsChances,
         botRole: string,
         isPmc: boolean,
         botLevel: number,
@@ -727,7 +720,7 @@ export class BotLootGenerator {
      * @param itemTemplate item details from db
      * @param moneyItem Money item to randomise
      */
-    protected randomiseMoneyStackSize(botRole: string, itemTemplate: ITemplateItem, moneyItem: IItem): void {
+    protected randomiseMoneyStackSize(botRole: string, itemTemplate: ITemplateItem, moneyItem: Item): void {
         // Get all currency weights for this bot type
         let currencyWeights = this.botConfig.currencyStackSize[botRole];
         if (!currencyWeights) {
@@ -747,8 +740,15 @@ export class BotLootGenerator {
      * @param itemTemplate item details from db
      * @param ammoItem Ammo item to randomise
      */
-    protected randomiseAmmoStackSize(isPmc: boolean, itemTemplate: ITemplateItem, ammoItem: IItem): void {
-        const randomSize = this.itemHelper.getRandomisedAmmoStackSize(itemTemplate);
+    protected randomiseAmmoStackSize(isPmc: boolean, itemTemplate: ITemplateItem, ammoItem: Item): void {
+        const randomSize =
+            itemTemplate._props.StackMaxSize === 1
+                ? 1
+                : this.randomUtil.getInt(
+                      itemTemplate._props.StackMinRandom,
+                      Math.min(itemTemplate._props.StackMaxRandom, 60),
+                  );
+
         this.itemHelper.addUpdObjectToItem(ammoItem);
 
         ammoItem.upd.StackObjectsCount = randomSize;

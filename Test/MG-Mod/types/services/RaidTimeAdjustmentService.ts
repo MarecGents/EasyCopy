@@ -5,11 +5,7 @@ import { ILocationBase } from "@spt/models/eft/common/ILocationBase";
 import { IGetRaidTimeRequest } from "@spt/models/eft/game/IGetRaidTimeRequest";
 import { ExtractChange, IGetRaidTimeResponse } from "@spt/models/eft/game/IGetRaidTimeResponse";
 import { ConfigTypes } from "@spt/models/enums/ConfigTypes";
-import {
-    ILocationConfig,
-    ILootMultiplier,
-    IScavRaidTimeLocationSettings,
-} from "@spt/models/spt/config/ILocationConfig";
+import { ILocationConfig, IScavRaidTimeLocationSettings, LootMultiplier } from "@spt/models/spt/config/ILocationConfig";
 import { IRaidChanges } from "@spt/models/spt/location/IRaidChanges";
 import { ILogger } from "@spt/models/spt/utils/ILogger";
 import { ConfigServer } from "@spt/servers/ConfigServer";
@@ -59,7 +55,7 @@ export class RaidTimeAdjustmentService {
      * @param mapLootMultiplers Multiplers to adjust
      * @param loosePercent Percent to change values to
      */
-    protected adjustLootMultipliers(mapLootMultiplers: ILootMultiplier, loosePercent: number): void {
+    protected adjustLootMultipliers(mapLootMultiplers: LootMultiplier, loosePercent: number): void {
         for (const key in mapLootMultiplers) {
             mapLootMultiplers[key] = this.randomUtil.getPercentOfValue(mapLootMultiplers[key], loosePercent);
         }

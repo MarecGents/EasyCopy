@@ -76,8 +76,8 @@ export class SptHttpListener implements IHttpListener {
     }
 
     /**
-     * Send HTTP response back to sender
-     * @param sessionID Player id making request
+     * Send http response to the client
+     * @param sessionID Player id
      * @param req Incoming request
      * @param resp Outgoing response
      * @param body Buffer
@@ -90,44 +90,27 @@ export class SptHttpListener implements IHttpListener {
         body: Buffer,
         output: string,
     ): void {
-        const bodyInfo = this.getBodyInfo(body);
+        const info = this.getBodyInfo(body);
+        let handled = false;
 
-        if (this.isDebugRequest(req)) {
-            // Send only raw response without transformation
+        // Check if this is a debug request, if so just send the raw response without transformation
+        if (req.headers.responsecompressed === "0") {
             this.sendJson(resp, output, sessionID);
-            this.logRequest(req, output);
-
-            return;
         }
 
-        // Not debug, minority of requests need a serializer to do the job (IMAGE/BUNDLE/NOTIFY)
-        const serialiser = this.serializers.find((x) => x.canHandle(output));
-        if (serialiser) {
-            serialiser.serialize(sessionID, req, resp, bodyInfo);
-        } else {
-            // No serializer can handle the request (majority of requests dont), zlib the output and send response back
+        // Attempt to use one of our serializers to do the job
+        for (const serializer of this.serializers) {
+            if (serializer.canHandle(output)) {
+                serializer.serialize(sessionID, req, resp, info);
+                handled = true;
+                break;
+            }
+        }
+        // If no serializer can handle the request we zlib the output and send it
+        if (!handled) {
             this.sendZlibJson(resp, output, sessionID);
         }
 
-        this.logRequest(req, output);
-    }
-
-    /**
-     * Is request flagged as debug enabled
-     * @param req Incoming request
-     * @returns True if request is flagged as debug
-     */
-    protected isDebugRequest(req: IncomingMessage): boolean {
-        return req.headers.responsecompressed === "0";
-    }
-
-    /**
-     * Log request if enabled
-     * @param req Incoming message request
-     * @param output Output string
-     */
-    protected logRequest(req: IncomingMessage, output: string): void {
-        //
         if (globalThis.G_LOG_REQUESTS) {
             const log = new Response(req.method, output);
             this.requestsLogger.info(`RESPONSE=${this.jsonUtil.serialize(log)}`);
