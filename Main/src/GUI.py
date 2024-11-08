@@ -18,9 +18,10 @@ class CutTools:
 		self.root = ttks.Window(
 			title=self.ch["cuttools"],
 			themename="morph",
-			minsize=(650, 550)
+			minsize=(650, 550),
 		
 		)
+		self.root.iconbitmap(self.exePath + "res\\img\\EasyCopy.ico")
 		screen_width, screen_height = win32api.GetSystemMetrics(0), win32api.GetSystemMetrics(1)
 		self.root.maxsize = (screen_width, screen_height)
 		self.root.geometry('%dx%d' % (screen_width / 3, screen_height / 2))
