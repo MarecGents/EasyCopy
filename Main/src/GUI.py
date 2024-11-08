@@ -9,10 +9,11 @@ from src import getFile
 import pathlib
 
 
-class CutTools():
+class CutTools:
 	
 	def __init__(self, exePath):
 		self.exePath = exePath
+		getFile.checkup_(exePath + "backup\\")
 		self.ch = getFile.get_file(self.exePath, "res\\locales\\ch.json")
 		self.root = ttks.Window(
 			title=self.ch["cuttools"],
