@@ -1,4 +1,3 @@
-import os
 import tkinter as tk
 from tkinter import messagebox
 from tkinter.filedialog import askdirectory
@@ -6,7 +5,8 @@ import ttkbootstrap as ttks
 import win32api
 from src import makeCut
 from src import getFile
-import pathlib
+
+CONFIG_PATH = "res\\config.json"
 
 
 class CutTools:
@@ -14,6 +14,7 @@ class CutTools:
 	def __init__(self, exePath):
 		self.exePath = exePath
 		self.check_need_file()
+		self.check_configJson()
 		self.ch = getFile.get_file(self.exePath, "res\\locales\\ch.json")
 		self.root = ttks.Window(
 			title=self.ch["cuttools"],
@@ -35,11 +36,6 @@ class CutTools:
 		pass
 	
 	def MainPage(self):
-		self.buttonStart = ttks.Button(
-			self.root,
-			text=self.ch["start"],
-			command=self.start
-		)
 		self.buttonDefaultPath = ttks.Button(
 			self.root,
 			text=self.ch["defaultPath"],
@@ -50,18 +46,36 @@ class CutTools:
 			text=self.ch["readConifg"],
 			command=self.readConfig
 		)
+		self.buttonCleanPath = ttks.Button(
+			self.root,
+			text=self.ch["cleanPath"],
+			command=self.cleanPath
+		)
+		self.buttonCopy = ttks.Button(
+			self.root,
+			text=self.ch["start_copymethod"],
+			command=lambda: self.start(self.ch["copymethod"])
+		)
+		self.buttonCut = ttks.Button(
+			self.root,
+			text=self.ch["start_cutmethod"],
+			command=lambda: self.start(self.ch["cutmethod"])
+		)
+		
 		
 		pass
 	
 	def showMainPage(self):
-		self.buttonStart.place(relx=0.8, rely=0.8, relheight=0.15, relwidth=0.15)
-		self.buttonDefaultPath.place(relx=0.6, rely=0.8, relheight=0.15, relwidth=0.15)
-		self.buttonReadConfig.place(relx=0.4, rely=0.8, relheight=0.15, relwidth=0.15)
+		self.buttonReadConfig.place(relx=0.01, rely=0.3, relheight=0.10, relwidth=0.15)
+		self.buttonDefaultPath.place(relx=0.2, rely=0.3, relheight=0.10, relwidth=0.12)
+		self.buttonCleanPath.place(relx=0.36, rely=0.3, relheight=0.10, relwidth=0.12)
+		self.buttonCopy.place(relx=0.85, rely=0.3, relheight=0.10, relwidth=0.12)
+		self.buttonCut.place(relx=0.7, rely=0.3, relheight=0.10, relwidth=0.12)
 		pass
 	
 	def Frame1(self):
-		self.search_sourcepath_var = tk.StringVar(value=str(pathlib.Path().absolute()))
-		self.search_aimmingpath_var = tk.StringVar(value=str(pathlib.Path().absolute()))
+		self.search_sourcepath_var = tk.StringVar(value=self.exePath)
+		self.search_aimmingpath_var = tk.StringVar(value=self.exePath)
 		self.frame1 = ttks.LabelFrame(
 			self.root,
 			text=self.ch["selectPath"],
@@ -115,39 +129,45 @@ class CutTools:
 		path = askdirectory(title=self.ch['selectPath'])
 		if path:
 			self.search_sourcepath_var.set(path)
-			self.rewrite("SourcePath", self.search_sourcepath_var.get())
+			self.rewriteConfig()
 	
 	def aimmingpathSelect(self):
 		"""Callback for directory browse"""
 		path = askdirectory(title='Directory')
 		if path:
 			self.search_aimmingpath_var.set(path)
-			self.rewrite("AimPath", self.search_aimmingpath_var.get())
+			self.rewriteConfig()
 	
-	def rewrite(self, key, value):
-		configJson = getFile.get_file(self.exePath, "res\\config.json")
-		configJson[key] = value
-		getFile.rewrite_file(self.exePath, "res\\config.json", configJson)
+	def rewriteConfig(self):
+		configJson = getFile.get_file(self.exePath, CONFIG_PATH)
+		configJson["SourcePath"] = self.search_sourcepath_var.get()
+		configJson["AimPath"] = self.search_aimmingpath_var.get()
+		getFile.rewrite_file(self.exePath, CONFIG_PATH, configJson)
 		pass
 	
-	def start(self):
+	def start(self, method):
 		sourcePath = self.search_sourcepath_var.get()
 		aimmingPath = self.search_aimmingpath_var.get()
+		messageTitle = self.ch["operate"] + ":" + method
 		if not sourcePath or not aimmingPath:
-			messagebox.showinfo(title=self.ch["operate"], message=self.ch["cutFailed2"], parent=self.root)
+			self.messageShow(messageTitle, self.ch["cutFailed2"].replace("${s}", method))
 			return
-		elif getFile.compare_paths(aimmingPath, self.exePath) or getFile.compare_paths(sourcePath, self.exePath):
-			messagebox.showinfo(title=self.ch["operate"], message=self.ch["cutFailed1"], parent=self.root)
+		elif (getFile.compare_paths(aimmingPath, self.exePath) or
+		      getFile.compare_paths(sourcePath, self.exePath)):
+			self.messageShow(messageTitle, self.ch["cutFailed1"].replace("${s}", method))
 			return
 		elif sourcePath == aimmingPath:
-			messagebox.showinfo(title=self.ch["operate"], message=self.ch["cutFailed3"], parent=self.root)
+			self.messageShow(messageTitle, self.ch["cutFailed3"].replace("${s}", method))
 			return
-		makeCut.copy(self.exePath)
-		messagebox.showinfo(title=self.ch["operate"], message=self.ch["cutSuccess"], parent=self.root)
+		status = makeCut.cut_method(self.exePath, method, [sourcePath, aimmingPath])
+		if status == 1:
+			self.messageShow(messageTitle, self.ch["cutSuccess"].replace("${s}", method))
+		elif status == -1:
+			self.messageShow(messageTitle, self.ch["cutFailed0"].replace("${s}", method))
 		pass
 	
 	def readConfig(self):
-		configJson = getFile.get_file(self.exePath, "res\\config.json")
+		configJson = getFile.get_file(self.exePath, CONFIG_PATH)
 		self.search_sourcepath_var.set(configJson["SourcePath"])
 		self.search_aimmingpath_var.set(configJson["AimPath"])
 		pass
@@ -155,14 +175,40 @@ class CutTools:
 	def defaultPath(self):
 		self.search_sourcepath_var.set(self.exePath)
 		self.search_aimmingpath_var.set(self.exePath)
-		self.rewrite("SourcePath", self.search_sourcepath_var.get())
-		self.rewrite("AimPath", self.search_aimmingpath_var.get())
+		self.rewriteConfig()
+		pass
+	
+	def cleanPath(self):
+		self.search_sourcepath_var.set("")
+		self.search_aimmingpath_var.set("")
+		self.rewriteConfig()
 		pass
 	
 	def check_need_file(self):
-		getFile.checkup_([self.exePath + "backup\\"])
-		getFile.checkup_([self.exePath + "Logs\\"])
+		pathList = [
+			self.exePath + "backup\\",
+			self.exePath + "Logs\\",
+			self.exePath + CONFIG_PATH
+		]
+		getFile.checkup_(pathList)
 		pass
+	
+	def check_configJson(self):
+		configJson = getFile.get_file(self.exePath, CONFIG_PATH)
+		if "SourcePath" in configJson and "AimPath" in configJson:
+			return True
+		else:
+			configJson = {
+				"SourcePath": "",
+				"AimPath": ""
+			}
+			getFile.rewrite_file(self.exePath, CONFIG_PATH, configJson)
+		pass
+	
+	def messageShow(self, title, message):
+		messagebox.showinfo(title=title, message=message, parent=self.root)
+		pass
+	
 	pass
 
 # CutTools().root.mainloop()
