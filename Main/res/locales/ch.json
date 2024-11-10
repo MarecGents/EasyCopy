@@ -15,5 +15,7 @@
   "cutFailed2": "${s}失败，源路径或目标路径不能为空！",
   "cutFailed3": "${s}失败，源路径或目标路径不能一致！",
   "copymethod": "复制",
-  "cutmethod": "剪切"
+  "cutmethod": "剪切",
+  "Warning": "警告",
+  "warning1": "当前操作未结束，确认要进行下一次操作？\n 当前正进行操作数：${}"
 }

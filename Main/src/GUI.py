@@ -5,6 +5,8 @@ import ttkbootstrap as ttks
 import win32api
 from src import makeCut
 from src import getFile
+from threading import Thread
+import time
 
 CONFIG_PATH = "res\\config.json"
 
@@ -16,6 +18,7 @@ class CutTools:
 		self.check_need_file()
 		self.check_configJson()
 		self.ch = getFile.get_file(self.exePath, "res\\locales\\ch.json")
+		self.status = 0
 		self.root = ttks.Window(
 			title=self.ch["cuttools"],
 			themename="morph",
@@ -30,9 +33,7 @@ class CutTools:
 		tf = ttks.font
 		
 		self.Frame1()
-		self.showFrame1()
 		self.MainPage()
-		self.showMainPage()
 		pass
 	
 	def MainPage(self):
@@ -61,8 +62,7 @@ class CutTools:
 			text=self.ch["start_cutmethod"],
 			command=lambda: self.start(self.ch["cutmethod"])
 		)
-		
-		
+		self.showMainPage()
 		pass
 	
 	def showMainPage(self):
@@ -109,7 +109,7 @@ class CutTools:
 			text=self.ch["selectPath"],
 			command=self.aimmingpathSelect
 		)
-		
+		self.showFrame1()
 		pass
 	
 	def showFrame1(self):
@@ -125,18 +125,33 @@ class CutTools:
 		pass
 	
 	def sourcepathSelect(self):
-		"""Callback for directory browse"""
-		path = askdirectory(title=self.ch['selectPath'])
+		if self._methodWorkding():
+			return
+		path = askdirectory(title=self.ch['selectPath'], initialdir=self.exePath)
 		if path:
 			self.search_sourcepath_var.set(path)
 			self.rewriteConfig()
+			pass
+		pass
 	
 	def aimmingpathSelect(self):
-		"""Callback for directory browse"""
-		path = askdirectory(title='Directory')
+		if self._methodWorkding():
+			return
+		path = askdirectory(title=self.ch['selectPath'], initialdir=self.exePath)
 		if path:
 			self.search_aimmingpath_var.set(path)
 			self.rewriteConfig()
+			pass
+		pass
+	
+	def _methodWorkding(self):
+		if self.status > 0:
+			callback = messagebox.askokcancel(
+				title=self.ch["Warning"],
+				message=(self.ch["warning1"].replace("${}", f"{self.status}个"))
+			)
+			return not callback
+		pass
 	
 	def rewriteConfig(self):
 		configJson = getFile.get_file(self.exePath, CONFIG_PATH)
@@ -156,14 +171,23 @@ class CutTools:
 		      getFile.compare_paths(sourcePath, self.exePath)):
 			self.messageShow(messageTitle, self.ch["cutFailed1"].replace("${s}", method))
 			return
-		elif sourcePath == aimmingPath:
+		elif getFile.compare_paths(sourcePath, aimmingPath):
 			self.messageShow(messageTitle, self.ch["cutFailed3"].replace("${s}", method))
 			return
-		status = makeCut.cut_method(self.exePath, method, [sourcePath, aimmingPath])
-		if status == 1:
+		Thread(target=self._async_Start, args=(sourcePath, aimmingPath, messageTitle, method)).start()
+		pass
+	
+	def _async_Start(self, sourcePath, aimmingPath, messageTitle, method):
+		self.status += 1
+		print("threading: " + str(self.status))
+		time.sleep(5)
+		callback = makeCut.cut_method(self.exePath, method, [sourcePath, aimmingPath])
+		if callback == 1:
 			self.messageShow(messageTitle, self.ch["cutSuccess"].replace("${s}", method))
-		elif status == -1:
+		elif callback == -1:
 			self.messageShow(messageTitle, self.ch["cutFailed0"].replace("${s}", method))
+			pass
+		self.status -= 1
 		pass
 	
 	def readConfig(self):
