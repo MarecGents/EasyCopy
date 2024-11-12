@@ -2,6 +2,9 @@ import os
 import json
 import shutil
 from datetime import datetime
+import sys
+import subprocess
+import platform
 
 USUAL_FILE_END = []
 def get_file(exePath,filePath):
@@ -117,3 +120,15 @@ def compare_paths(path1, path2):
 	
 	# 比较两个绝对路径是否相同
 	return abs_path1 == abs_path2
+
+def open_path(path):
+	if not os.path.isdir(path):
+		print(f"The specified path is not a directory: {path}")
+		return
+	if platform.system() == "Windows":
+		os.startfile(path)
+	elif platform.system() == "Darwin":
+		subprocess.Popen(["open", path])
+	else:  # Linux and others
+		subprocess.Popen(["xdg-open", path])
+	pass

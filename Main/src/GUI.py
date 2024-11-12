@@ -3,10 +3,10 @@ from tkinter import messagebox
 from tkinter.filedialog import askdirectory
 import ttkbootstrap as ttks
 import win32api
-from src import makeCut
-from src import getFile
+from . import makeCut
+from . import getFile
 from threading import Thread
-import time
+
 
 CONFIG_PATH = "res\\config.json"
 
@@ -30,10 +30,21 @@ class CutTools:
 		self.root.maxsize = (screen_width, screen_height)
 		self.root.geometry('%dx%d' % (screen_width / 3, screen_height / 2))
 		
+		self.MainMenubar = ttks.Menu(
+			self.root,
+		)
+		self.root.config(menu=self.MainMenubar)
 		tf = ttks.font
+		self.ifBackup = ttks.IntVar()
 		
+		self.valueInit()
+		self.MemuBar()
 		self.Frame1()
 		self.MainPage()
+		pass
+	
+	def valueInit(self):
+		self.ifBackup.set(1)
 		pass
 	
 	def MainPage(self):
@@ -124,6 +135,30 @@ class CutTools:
 		self.button2.place(relx=0.8, rely=0.575, relheight=0.35, relwidth=0.15)
 		pass
 	
+	def MemuBar(self):
+		for item in ["文件", "设置", "关于"]:
+			self.MainMenubar.add_cascade(label=item, menu=self.MemuBar_2(item))
+			pass
+		pass
+	
+	def MemuBar_2(self, event):
+		memu = ttks.Menu(self.MainMenubar, tearoff=0)
+		if event is "文件":
+			memu.add_command(label="打开软件根目录",command=getFile.open_path(self.exePath))
+			return memu
+			pass
+		elif event is "设置":
+			memu.add_checkbutton(label="是否备份",command=self.,variable=self.ifBackup)
+			return memu
+			pass
+		pass
+	
+	def ifBackup(self):
+		
+		return
+		pass
+	
+	
 	def sourcepathSelect(self):
 		if self._methodWorkding():
 			return
@@ -179,8 +214,6 @@ class CutTools:
 	
 	def _async_Start(self, sourcePath, aimmingPath, messageTitle, method):
 		self.status += 1
-		print("threading: " + str(self.status))
-		time.sleep(5)
 		callback = makeCut.cut_method(self.exePath, method, [sourcePath, aimmingPath])
 		if callback == 1:
 			self.messageShow(messageTitle, self.ch["cutSuccess"].replace("${s}", method))

@@ -1,4 +1,4 @@
-from src import getFile
+from . import getFile
 import os
 
 
