@@ -1,8 +1,13 @@
 {
-  "file": {
-
-  },
-  "setting": {
-
-  }
+    "file": {},
+    "setting": {
+        "backup": true,
+        "only_copy": false,
+        "only_cut": false
+    },
+    "about": {
+        "version": "0.0.3",
+        "license": "MIT",
+        "official_website": "https://github.com/MarecGents/EasyCopy/releases/latest"
+    }
 }

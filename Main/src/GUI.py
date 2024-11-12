@@ -5,8 +5,8 @@ import ttkbootstrap as ttks
 import win32api
 from . import makeCut
 from . import getFile
+from . import setting
 from threading import Thread
-
 
 CONFIG_PATH = "res\\config.json"
 
@@ -35,8 +35,9 @@ class CutTools:
 		)
 		self.root.config(menu=self.MainMenubar)
 		tf = ttks.font
-		self.ifBackup = ttks.IntVar()
-		
+		self.ifBackup = ttks.BooleanVar()
+		self.ifOnlyCopy = ttks.BooleanVar()
+		self.ifOnlyCut = ttks.BooleanVar()
 		self.valueInit()
 		self.MemuBar()
 		self.Frame1()
@@ -44,7 +45,9 @@ class CutTools:
 		pass
 	
 	def valueInit(self):
-		self.ifBackup.set(1)
+		self.ifBackup.set((True if setting.SettingControl(self.exePath).backup_if() == True else False))
+		self.ifOnlyCopy.set((True if setting.SettingControl(self.exePath).only_copy() == True else False))
+		self.ifOnlyCut.set((True if setting.SettingControl(self.exePath).only_cut() == True else False))
 		pass
 	
 	def MainPage(self):
@@ -143,21 +146,30 @@ class CutTools:
 	
 	def MemuBar_2(self, event):
 		memu = ttks.Menu(self.MainMenubar, tearoff=0)
-		if event is "文件":
-			memu.add_command(label="打开软件根目录",command=getFile.open_path(self.exePath))
+		if event == "文件":
+			memu.add_command(label="打开软件根目录", command=lambda: getFile.open_path(self.exePath))
+			# ,command=getFile.open_path(self.exePath)
 			return memu
 			pass
-		elif event is "设置":
-			memu.add_checkbutton(label="是否备份",command=self.,variable=self.ifBackup)
+		elif event == "设置":
+			memu.add_checkbutton(label="是否备份", onvalue=1, offvalue=0, command=self.backup_if, variable=self.ifBackup)
+			memu.add_checkbutton(label="仅复制", onvalue=1, offvalue=0, command=self.only_copy_if, variable=self.ifOnlyCopy)
+			memu.add_checkbutton(label="仅剪切", onvalue=1, offvalue=0, command=self.only_cut_if, variable=self.ifOnlyCut)
 			return memu
 			pass
 		pass
 	
-	def ifBackup(self):
-		
-		return
+	def backup_if(self):
+		setting.SettingControl(self.exePath).save_backup(self.ifBackup.get())
 		pass
 	
+	def only_copy_if(self):
+		setting.SettingControl(self.exePath).save_only_copy(self.ifOnlyCopy.get())
+		pass
+	
+	def only_cut_if(self):
+		setting.SettingControl(self.exePath).save_only_cut(self.ifOnlyCut.get())
+		pass
 	
 	def sourcepathSelect(self):
 		if self._methodWorkding():
@@ -267,5 +279,3 @@ class CutTools:
 		pass
 	
 	pass
-
-# CutTools().root.mainloop()
