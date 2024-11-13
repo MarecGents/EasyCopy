@@ -1,6 +1,8 @@
 from . import getFile
 import os
+from .setting import SettingControl
 
+CH_PATH = "res\\locales\\ch.json"
 
 def cut_method(exePath, operate, pathList):
 	# config = getFile.get_file(exePath, "res\\config.json")
@@ -17,21 +19,20 @@ def cut_method(exePath, operate, pathList):
 	dst_dir = pathList[1]
 	# 备份文件夹路径
 	backupPath = exePath + f"backup\\backup" + str(len(os.listdir(exePath + "backup")) + 1)
-	
 	# 步骤2：创建备份文件夹（如果不存在）
 	getFile.checkup_([dst_dir, backupPath])
 	LogList = []
 	LogList.append(f"{getFile.getTime()} | method:{operate}\n"
 	               f"From:{src_dir}\n"
 	               f"To:{dst_dir}\n")
-	if operate == "复制":
-		# 步骤3： 移动目标文件夹下的文件到备份文件夹
+	
+	if SettingControl(exePath).backup_if():
 		LogList.extend(getFile.move_file(dst_dir, backupPath))
+		pass
+	if operate == (getFile.get_file(exePath, CH_PATH))["copymethod"]:
 		LogList.extend(getFile.copy_file(src_dir, dst_dir))
 		pass
-	elif operate == "剪切":
-		# 步骤3： 移动目标文件夹下的文件到备份文件夹
-		LogList.extend(getFile.move_file(dst_dir, backupPath))
+	elif operate == (getFile.get_file(exePath, CH_PATH))["cutmethod"]:
 		LogList.extend(getFile.move_file(src_dir, dst_dir))
 		pass
 	getFile.writeLog(exePath, LogList)

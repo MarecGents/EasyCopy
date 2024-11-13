@@ -6,9 +6,10 @@ import sys
 import subprocess
 import platform
 
+
 USUAL_FILE_END = []
 def get_file(exePath,filePath):
-	path = exePath + f"{filePath}"
+	path = exePath + filePath
 	f_open = open(path, "r+", encoding="utf-8")
 	config = json.load(f_open)
 	f_open.close()
@@ -94,6 +95,13 @@ def copy_file(source, dest):
 			pass
 		pass
 	return LogList
+	pass
+
+def delete_file(dest_file):
+	try:
+		shutil.rmtree(dest_file)
+	except Exception as e:
+		print(f"无法删除文件夹 {dest_file}: {e}")
 	pass
 
 def writeLog(exePath,LogList):

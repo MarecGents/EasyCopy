@@ -1,4 +1,5 @@
 import tkinter as tk
+from cProfile import label
 from tkinter import messagebox
 from tkinter.filedialog import askdirectory
 import ttkbootstrap as ttks
@@ -23,13 +24,13 @@ class CutTools:
 			title=self.ch["cuttools"],
 			themename="morph",
 			minsize=(650, 550),
-		
 		)
 		self.root.iconbitmap(self.exePath + "res\\img\\EasyCopy.ico")
 		screen_width, screen_height = win32api.GetSystemMetrics(0), win32api.GetSystemMetrics(1)
+		
 		self.root.maxsize = (screen_width, screen_height)
 		self.root.geometry('%dx%d' % (screen_width / 3, screen_height / 2))
-		
+		self.root.position_center()
 		self.MainMenubar = ttks.Menu(
 			self.root,
 		)
@@ -139,9 +140,10 @@ class CutTools:
 		pass
 	
 	def MemuBar(self):
-		for item in ["文件", "设置", "关于"]:
+		for item in ["文件", "设置"]:
 			self.MainMenubar.add_cascade(label=item, menu=self.MemuBar_2(item))
 			pass
+		self.MainMenubar.add_command(label="关于", command=self.showAboutPage)
 		pass
 	
 	def MemuBar_2(self, event):
@@ -153,8 +155,8 @@ class CutTools:
 			pass
 		elif event == "设置":
 			memu.add_checkbutton(label="是否备份", onvalue=1, offvalue=0, command=self.backup_if, variable=self.ifBackup)
-			memu.add_checkbutton(label="仅复制", onvalue=1, offvalue=0, command=self.only_copy_if, variable=self.ifOnlyCopy)
-			memu.add_checkbutton(label="仅剪切", onvalue=1, offvalue=0, command=self.only_cut_if, variable=self.ifOnlyCut)
+			# memu.add_checkbutton(label="仅复制", onvalue=1, offvalue=0, command=self.only_copy_if, variable=self.ifOnlyCopy)
+			# memu.add_checkbutton(label="仅剪切", onvalue=1, offvalue=0, command=self.only_cut_if, variable=self.ifOnlyCut)
 			return memu
 			pass
 		pass
@@ -169,6 +171,13 @@ class CutTools:
 	
 	def only_cut_if(self):
 		setting.SettingControl(self.exePath).save_only_cut(self.ifOnlyCut.get())
+		pass
+	
+	def showAboutPage(self):
+		self.aboutPage = ttks.Window()
+		self.aboutPage.title("About")
+		self.aboutPage.geometry("200x200")
+		self.aboutPage.mainloop()
 		pass
 	
 	def sourcepathSelect(self):
